@@ -8,6 +8,7 @@ import {
   getPlayers,
   getDeck,
   makePlayerMap,
+  readPlayers,
 } from '@/net/ydoc'
 import { shuffledDeck } from '@/game/deck'
 import { orderedPlayers } from '@/game/rules'
@@ -68,33 +69,50 @@ export default function Lobby() {
     sessionStorage.removeItem(`vucciria:pending:${code}`)
   }, [binding, code, pending])
 
-  // Register ourselves as a player (once meta exists).
+  // Register ourselves as a player as soon as we have a binding + profile.
+  //
+  // We intentionally DO NOT wait for `meta.code` to sync from the host: when
+  // peer discovery is slow (the public Nostr relays Trystero uses by default
+  // can take 5–30s), gating on synced meta means a joiner stares at a totally
+  // empty lobby — not even themselves — with no feedback. Worse, our local
+  // player entry never exists until sync arrives, so the host can't see us
+  // either once a connection finally comes up if we time out first.
+  //
+  // Yjs is a CRDT, so two peers writing into the `players` map concurrently
+  // merges cleanly. `lives` may be temporarily wrong on the joiner until
+  // `meta.startingLives` arrives — the follow-up effect below corrects it
+  // while we're still in the lobby.
   useEffect(() => {
-    if (!binding || !meta?.code || !profile) return
+    if (!binding || !profile) return
+    if (meta?.status && meta.status !== 'lobby') return
     const playersMap = getPlayers(binding.doc)
     if (playersMap.has(selfId)) return
-    if (meta.status && meta.status !== 'lobby') return
-    const existingSeats = orderedPlayers(
-      Array.from(playersMap.values()).map((pm) => ({
-        peerId: 'x',
-        nickname: pm.get('nickname') as string,
-        emoji: pm.get('emoji') as string,
-        lives: pm.get('lives') as number,
-        seat: pm.get('seat') as number,
-        joinedAt: pm.get('joinedAt') as number,
-      })),
-    )
-    const nextSeat = (existingSeats[existingSeats.length - 1]?.seat ?? -1) + 1
+    const existing = readPlayers(binding.doc)
+    const nextSeat = (orderedPlayers(existing).at(-1)?.seat ?? -1) + 1
     const newPlayer: Player = {
       peerId: selfId,
       nickname: profile.nickname,
       emoji: profile.emoji,
-      lives: meta.startingLives ?? 3,
+      lives: meta?.startingLives ?? 3,
       seat: nextSeat,
       joinedAt: Date.now(),
     }
     playersMap.set(selfId, makePlayerMap(newPlayer))
-  }, [binding, meta?.code, meta?.status, meta?.startingLives, profile])
+  }, [binding, meta?.status, meta?.startingLives, profile])
+
+  // If we self-registered before `meta.startingLives` synced from the host,
+  // correct our `lives` once meta arrives — but only while still in the lobby
+  // (never overwrite mid-game lives).
+  useEffect(() => {
+    if (!binding || !meta?.startingLives) return
+    if (meta.status && meta.status !== 'lobby') return
+    const playersMap = getPlayers(binding.doc)
+    const me = playersMap.get(selfId)
+    if (!me) return
+    if ((me.get('lives') as number) !== meta.startingLives) {
+      me.set('lives', meta.startingLives)
+    }
+  }, [binding, meta?.startingLives, meta?.status])
 
   // Auto-navigate when the game starts.
   useEffect(() => {
