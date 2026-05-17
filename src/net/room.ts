@@ -71,17 +71,63 @@ async function resolveStrategy(): Promise<{
 const { joinRoom, selfId, strategy: activeStrategy } = await resolveStrategy()
 console.log(`[room] active Trystero strategy: ${activeStrategy}`)
 
-/** Parse comma-separated relay URLs from env var, or return undefined to use Trystero defaults. */
-function customRelayUrls(): string[] | undefined {
+/**
+ * Curated default relay URLs per strategy.
+ *
+ * Why we override Trystero's built-in defaults: Trystero 0.20.x ships a 25-entry
+ * Nostr relay list and picks 5 of them deterministically per `appId`. Several
+ * entries in that list are stale or down (e.g. `longhorn.bgp.rodeo`), which
+ * means every install of this app hits the same broken 5 and discovery fails
+ * silently. Curating a smaller, currently-healthy list dramatically improves
+ * the first-connection success rate.
+ *
+ * MAINTENANCE: relay health rots over time. If users start reporting
+ * "Connecting…" hangs again, the first thing to check is whether these URLs
+ * are still up (e.g. `wscat -c wss://relay.damus.io`). Users can always
+ * override the list at build time via `VITE_TRYSTERO_RELAYS`.
+ */
+const CURATED_DEFAULT_RELAYS: Record<TrysteroStrategy, string[]> = {
+  nostr: [
+    'wss://relay.damus.io',
+    'wss://nos.lol',
+    'wss://relay.nostr.band',
+    'wss://nostr.wine',
+    'wss://relay.snort.social',
+  ],
+  // Trystero's MQTT defaults are already short and well-known; leave as-is.
+  mqtt: [],
+  // Trystero's torrent tracker defaults are reasonably healthy; leave as-is.
+  torrent: [],
+}
+
+/**
+ * Resolve the relay list for this session:
+ *   1. `VITE_TRYSTERO_RELAYS` env override (highest priority).
+ *   2. Our curated list for the active strategy.
+ *   3. Fall back to Trystero's built-in defaults (return `undefined`).
+ */
+function resolveRelayUrls(): string[] | undefined {
   const raw = import.meta.env.VITE_TRYSTERO_RELAYS
-  if (!raw) return undefined
-  const urls = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-  if (urls.length === 0) return undefined
-  console.log(`[room] using custom relays (${urls.length}):`, urls)
-  return urls
+  if (raw) {
+    const urls = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (urls.length > 0) {
+      console.log(`[room] using env-override relays (${urls.length}):`, urls)
+      return urls
+    }
+  }
+  const curated = CURATED_DEFAULT_RELAYS[activeStrategy]
+  if (curated.length > 0) {
+    console.log(
+      `[room] using curated default relays for ${activeStrategy} ` +
+        `(${curated.length}):`,
+      curated,
+    )
+    return curated
+  }
+  return undefined
 }
 
 export interface RoomBinding {
@@ -93,7 +139,7 @@ export interface RoomBinding {
 let syncLogCount = 0
 
 export function joinGameRoom(gameCode: string, doc: Y.Doc): RoomBinding {
-  const relayUrls = customRelayUrls()
+  const relayUrls = resolveRelayUrls()
   const room = joinRoom(
     { appId: APP_ID, password: gameCode, ...(relayUrls ? { relayUrls } : {}) },
     gameCode,
