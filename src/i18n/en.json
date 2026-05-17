@@ -47,7 +47,9 @@
     "leave": "Leave",
     "start": "Start game",
     "needMorePlayers": "Need at least 2 players",
-    "waitingForHost": "Waiting for host to start…"
+    "waitingForHost": "Waiting for host to start…",
+    "waitingForPeers": "Connecting to P2P network…",
+    "connected": "{{count}} peer(s) connected"
   },
   "play": {
     "yourTurn": "Your turn",

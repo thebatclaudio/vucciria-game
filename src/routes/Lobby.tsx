@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useGameRoom, useGameMeta, usePlayers } from '@/net/hooks'
+import { useGameRoom, useGameMeta, usePlayers, usePeerCount } from '@/net/hooks'
 import { selfId } from '@/net/room'
 import {
   getMeta,
@@ -31,6 +31,7 @@ export default function Lobby() {
   const binding = useGameRoom(code)
   const meta = useGameMeta(binding?.doc ?? null)
   const players = usePlayers(binding?.doc ?? null)
+  const peerCount = usePeerCount(binding?.room ?? null)
   const [copied, setCopied] = useState(false)
 
   const pending = useMemo<PendingSettings | null>(() => {
@@ -159,6 +160,20 @@ export default function Lobby() {
         >
           {copied ? `✓ ${t('lobby.copied')}` : `📋 ${t('lobby.copy')}`}
         </button>
+      </div>
+
+      {/* Connection status */}
+      <div className="flex items-center justify-center gap-2 text-xs">
+        <span
+          className={`inline-block w-2 h-2 rounded-full ${
+            peerCount > 0 ? 'bg-green-500' : 'bg-amber-400 animate-pulse'
+          }`}
+        />
+        <span className="text-beer-600">
+          {peerCount > 0
+            ? t('lobby.connected', { count: peerCount })
+            : t('lobby.waitingForPeers')}
+        </span>
       </div>
 
       <h2 className="font-semibold text-beer-800">

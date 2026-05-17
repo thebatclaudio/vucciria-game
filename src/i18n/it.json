@@ -47,7 +47,9 @@
     "leave": "Esci",
     "start": "Inizia",
     "needMorePlayers": "Servono almeno 2 giocatori",
-    "waitingForHost": "In attesa che l'host inizi…"
+    "waitingForHost": "In attesa che l'host inizi…",
+    "waitingForPeers": "Connessione alla rete P2P…",
+    "connected": "{{count}} peer connessi"
   },
   "play": {
     "yourTurn": "Tocca a te",

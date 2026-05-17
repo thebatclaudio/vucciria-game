@@ -71,3 +71,25 @@ export function usePlayers(doc: Y.Doc | null): Player[] {
   }, [doc])
   return players
 }
+
+/**
+ * Poll the Trystero room's peer map for a visual connection indicator.
+ *
+ * We poll instead of subscribing to onPeerJoin/onPeerLeave because those
+ * Trystero APIs are single-assignment and would conflict with the internal
+ * handlers in joinGameRoom.
+ */
+export function usePeerCount(room: RoomBinding['room'] | null): number {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    if (!room) {
+      setCount(0)
+      return
+    }
+    const poll = () => setCount(Object.keys(room.getPeers()).length)
+    poll()
+    const id = setInterval(poll, 2000)
+    return () => clearInterval(id)
+  }, [room])
+  return count
+}
