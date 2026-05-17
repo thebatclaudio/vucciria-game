@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  font-family: 'Fredoka', system-ui, -apple-system, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: linear-gradient(180deg, #fffbeb 0%, #fde68a 100%);
+  color: #422006;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* The "lost life" glass: same emoji, dimmed/greyscale. */
+.life-glass-lost {
+  filter: grayscale(1) opacity(0.35);
+}
+
+/* Card flip helper */
+.perspective {
+  perspective: 1000px;
+}

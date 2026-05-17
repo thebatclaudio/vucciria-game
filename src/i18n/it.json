@@ -1,0 +1,129 @@
+{
+  "app": {
+    "title": "VucciriaGame",
+    "tagline": "Bevi. Pesca. Sopravvivi."
+  },
+  "home": {
+    "nicknamePlaceholder": "Il tuo nickname",
+    "nicknameTooShort": "Almeno 2 caratteri",
+    "pickEmoji": "Scegli un avatar",
+    "shuffle": "Mescola",
+    "play": "Gioca"
+  },
+  "dashboard": {
+    "welcome": "Benvenuto, {{name}}",
+    "createGame": "Crea partita",
+    "joinGame": "Unisciti",
+    "changeProfile": "Cambia profilo"
+  },
+  "create": {
+    "title": "Crea una partita",
+    "name": "Nome partita",
+    "namePlaceholder": "Venerdì sera",
+    "maxPlayers": "Giocatori max",
+    "startingLives": "Bicchierini iniziali",
+    "location": "Luogo (opzionale)",
+    "locationPlaceholder": "Casa mia",
+    "submit": "Crea",
+    "back": "Indietro"
+  },
+  "join": {
+    "title": "Unisciti a una partita",
+    "codePlaceholder": "ABC123",
+    "submit": "Entra",
+    "invalidCode": "Il codice deve essere di 6 caratteri",
+    "back": "Indietro"
+  },
+  "lobby": {
+    "title": "Sala d'attesa",
+    "code": "Codice partita",
+    "share": "Condividi questo codice con gli amici",
+    "copy": "Copia",
+    "copied": "Copiato!",
+    "players": "Giocatori ({{count}}/{{max}})",
+    "you": "(tu)",
+    "host": "host",
+    "kick": "Caccia",
+    "leave": "Esci",
+    "start": "Inizia",
+    "needMorePlayers": "Servono almeno 2 giocatori",
+    "waitingForHost": "In attesa che l'host inizi…"
+  },
+  "play": {
+    "yourTurn": "Tocca a te",
+    "turnOf": "Tocca a {{name}}",
+    "draw": "Pesca una carta",
+    "endTurn": "Fine turno",
+    "eliminated": "Eliminato",
+    "livesLabel": "Bicchierini rimasti",
+    "hostActions": "Azioni host",
+    "addLife": "+1 bicchierino",
+    "removeLife": "-1 bicchierino",
+    "kick": "Rimuovi giocatore"
+  },
+  "over": {
+    "title": "Partita finita",
+    "winner": "{{name}} ha vinto!",
+    "backToDashboard": "Torna al menu"
+  },
+  "common": {
+    "yes": "Sì",
+    "no": "No",
+    "cancel": "Annulla",
+    "confirm": "Conferma"
+  },
+  "cards": {
+    "mossa": {
+      "title": "Mossa",
+      "desc": "Inventa una mossa che tutti devono ripetere prima di bere. Se ci sono già mosse, ripetile tutte. Ne sbagli una? Bevi due volte. Accusi qualcuno ingiustamente? Bevi tu."
+    },
+    "bevi": {
+      "title": "Bevi",
+      "desc": "Bevi e basta. Niente da spiegare."
+    },
+    "beviOoffri": {
+      "title": "Bevi o offri",
+      "desc": "Scegli tu: bevi tu, oppure scegli qualcun altro che beva."
+    },
+    "treAveMaria": {
+      "title": "Tre dell'Ave Maria",
+      "desc": "Tu, chi è alla tua sinistra e chi è alla tua destra — tutti e tre bevete."
+    },
+    "tuEcumpari": {
+      "title": "Tu e to cumpari",
+      "desc": "Scegli qualcuno che beva con te. Bevete entrambi."
+    },
+    "jolly": {
+      "title": "Jolly",
+      "desc": "Fortuna! Guadagni +1 bicchierino."
+    },
+    "pipi": {
+      "title": "Pipì",
+      "desc": "Pass libero. Vai in bagno, nessuna penalità."
+    },
+    "sfida": {
+      "title": "Sfida",
+      "desc": "Sfida chi vuoi a sasso-carta-forbice (o un altro gioco veloce). Chi perde beve."
+    },
+    "setteBum": {
+      "title": "7 Bum",
+      "desc": "Contate da 1. Invece dei multipli di 7 o numeri che finiscono per 7, dici \"bum\". Sbagli? Bevi."
+    },
+    "ventuno": {
+      "title": "21",
+      "desc": "Contate insieme fino a 21. Ognuno dice 1 o 2 numeri. Dirne 2 inverte il senso. Chi dice 21 beve."
+    },
+    "storia": {
+      "title": "Storia",
+      "desc": "Costruite una frase una parola alla volta. Ognuno ripete tutte le precedenti e aggiunge una. Sbagli? Bevi."
+    },
+    "zingBoing": {
+      "title": "Zing Boing",
+      "desc": "Dì \"zing\" per passare in senso orario, \"boing\" per invertire. Sbagli? Bevi."
+    },
+    "bevonoTutti": {
+      "title": "Bevono tutti",
+      "desc": "Bevono tutti!"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "filesystem",
+  "transport": "stdio",
+  "command": "npx",
+  "args": [
+    "-y",
+    "@modelcontextprotocol/server-filesystem",
+    "."
+  ],
+  "description": "Sandboxed filesystem access to the VucciriaGame repo root.",
+  "scope": "local"
+}

@@ -1,0 +1,72 @@
+import * as Y from 'yjs'
+import type { GameMeta, Player } from '@/game/types'
+
+/**
+ * Shape of the shared Yjs document for a single game room.
+ *
+ * - `meta` (Y.Map<string, any>) — single-shot game metadata (status, host, turn, code, ...)
+ * - `players` (Y.Map<peerId, Y.Map<string, any>>) — one nested map per player
+ * - `deck` (Y.Array<string>) — current shuffled order of card ids
+ * - `deckIndex` is stored inside `meta` to keep all mutable scalars in one map
+ *
+ * NOTE: We intentionally use Y.Maps with primitive fields rather than plain
+ * JS objects so concurrent mutations from peers (e.g. host decrementing
+ * lives at the same time someone else updates the turn) merge cleanly.
+ */
+export function createGameDoc(): Y.Doc {
+  return new Y.Doc()
+}
+
+export function getMeta(doc: Y.Doc): Y.Map<unknown> {
+  return doc.getMap('meta')
+}
+
+export function getPlayers(doc: Y.Doc): Y.Map<Y.Map<unknown>> {
+  return doc.getMap<Y.Map<unknown>>('players')
+}
+
+export function getDeck(doc: Y.Doc): Y.Array<string> {
+  return doc.getArray<string>('deck')
+}
+
+export function readMeta(doc: Y.Doc): Partial<GameMeta> {
+  const m = getMeta(doc)
+  return {
+    code: m.get('code') as string,
+    name: m.get('name') as string,
+    maxPlayers: m.get('maxPlayers') as number,
+    startingLives: m.get('startingLives') as number,
+    location: (m.get('location') as string | null) ?? null,
+    hostPeerId: m.get('hostPeerId') as string,
+    status: (m.get('status') as GameMeta['status']) ?? 'lobby',
+    turnSeat: (m.get('turnSeat') as number) ?? 0,
+    createdAt: m.get('createdAt') as number,
+    lastCardId: (m.get('lastCardId') as string | null) ?? null,
+    winnerPeerId: (m.get('winnerPeerId') as string | null) ?? null,
+  }
+}
+
+export function readPlayers(doc: Y.Doc): Player[] {
+  const out: Player[] = []
+  getPlayers(doc).forEach((pm, peerId) => {
+    out.push({
+      peerId,
+      nickname: pm.get('nickname') as string,
+      emoji: pm.get('emoji') as string,
+      lives: pm.get('lives') as number,
+      seat: pm.get('seat') as number,
+      joinedAt: pm.get('joinedAt') as number,
+    })
+  })
+  return out
+}
+
+export function makePlayerMap(p: Player): Y.Map<unknown> {
+  const m = new Y.Map<unknown>()
+  m.set('nickname', p.nickname)
+  m.set('emoji', p.emoji)
+  m.set('lives', p.lives)
+  m.set('seat', p.seat)
+  m.set('joinedAt', p.joinedAt)
+  return m
+}

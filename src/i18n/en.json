@@ -1,0 +1,129 @@
+{
+  "app": {
+    "title": "VucciriaGame",
+    "tagline": "Drink. Draw. Survive."
+  },
+  "home": {
+    "nicknamePlaceholder": "Your nickname",
+    "nicknameTooShort": "At least 2 characters",
+    "pickEmoji": "Pick an avatar",
+    "shuffle": "Shuffle",
+    "play": "Play"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "createGame": "Create game",
+    "joinGame": "Join game",
+    "changeProfile": "Change profile"
+  },
+  "create": {
+    "title": "Create a game",
+    "name": "Game name",
+    "namePlaceholder": "Friday night",
+    "maxPlayers": "Max players",
+    "startingLives": "Starting lives",
+    "location": "Location (optional)",
+    "locationPlaceholder": "My place",
+    "submit": "Create",
+    "back": "Back"
+  },
+  "join": {
+    "title": "Join a game",
+    "codePlaceholder": "ABC123",
+    "submit": "Join",
+    "invalidCode": "Code must be 6 characters",
+    "back": "Back"
+  },
+  "lobby": {
+    "title": "Game lobby",
+    "code": "Game code",
+    "share": "Share this code with your friends",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "players": "Players ({{count}}/{{max}})",
+    "you": "(you)",
+    "host": "host",
+    "kick": "Kick",
+    "leave": "Leave",
+    "start": "Start game",
+    "needMorePlayers": "Need at least 2 players",
+    "waitingForHost": "Waiting for host to start…"
+  },
+  "play": {
+    "yourTurn": "Your turn",
+    "turnOf": "{{name}}'s turn",
+    "draw": "Draw a card",
+    "endTurn": "End turn",
+    "eliminated": "Eliminated",
+    "livesLabel": "Shots left",
+    "hostActions": "Host actions",
+    "addLife": "+1 shot",
+    "removeLife": "-1 shot",
+    "kick": "Remove player"
+  },
+  "over": {
+    "title": "Game over",
+    "winner": "{{name}} wins!",
+    "backToDashboard": "Back to dashboard"
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "cards": {
+    "mossa": {
+      "title": "Mossa",
+      "desc": "Invent a move everyone must repeat before drinking. If moves already exist, repeat them all. Forget one? Drink twice. Falsely accuse someone? You drink."
+    },
+    "bevi": {
+      "title": "Drink",
+      "desc": "Just drink. Nothing to explain."
+    },
+    "beviOoffri": {
+      "title": "Drink or offer",
+      "desc": "You choose: drink yourself, or pick someone else to drink."
+    },
+    "treAveMaria": {
+      "title": "Three Hail Marys",
+      "desc": "You and the players to your left and right — all three drink."
+    },
+    "tuEcumpari": {
+      "title": "You and your buddy",
+      "desc": "Pick someone to drink with you. Both drink."
+    },
+    "jolly": {
+      "title": "Jolly",
+      "desc": "Lucky! Gain +1 shot."
+    },
+    "pipi": {
+      "title": "Bathroom break",
+      "desc": "Free pass. Go to the bathroom, no penalty."
+    },
+    "sfida": {
+      "title": "Challenge",
+      "desc": "Challenge anyone to rock-paper-scissors (or any quick game). Loser drinks."
+    },
+    "setteBum": {
+      "title": "7 Bum",
+      "desc": "Count up from 1. Instead of multiples of 7 or numbers ending in 7, say \"bum\". Mess up? Drink."
+    },
+    "ventuno": {
+      "title": "21",
+      "desc": "Count together to 21. Each person says 1 or 2 numbers. Saying 2 numbers reverses direction. Whoever says 21 drinks."
+    },
+    "storia": {
+      "title": "Story",
+      "desc": "Make a sentence one word at a time. Each person repeats all previous words and adds one. Mess up? Drink."
+    },
+    "zingBoing": {
+      "title": "Zing Boing",
+      "desc": "Say \"zing\" to pass clockwise, \"boing\" to reverse direction. Mess up? Drink."
+    },
+    "bevonoTutti": {
+      "title": "Everyone drinks",
+      "desc": "Everyone drinks!"
+    }
+  }
+}

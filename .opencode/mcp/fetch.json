@@ -1,0 +1,11 @@
+{
+  "name": "fetch",
+  "transport": "stdio",
+  "command": "npx",
+  "args": [
+    "-y",
+    "@modelcontextprotocol/server-fetch"
+  ],
+  "description": "Web fetch with HTML→markdown conversion. Used for pulling latest Trystero / Yjs / Vite-PWA documentation on demand.",
+  "scope": "local"
+}
