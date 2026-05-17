@@ -9,6 +9,13 @@ const base = process.env.BASE_PATH ?? '/'
 
 export default defineConfig({
   base,
+  // Bump build target so top-level await (used in src/net/room.ts to bind the
+  // chosen Trystero strategy at module load) survives esbuild transpilation.
+  // ES2022 is supported by Chrome 94+, Safari 15+, Firefox 93+ — all browsers
+  // that also support the WebRTC features the app relies on.
+  build: {
+    target: 'es2022',
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

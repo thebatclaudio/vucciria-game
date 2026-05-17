@@ -53,7 +53,7 @@ For a custom domain or root deployment, override `BASE_PATH` in `.github/workflo
 
 ## Tech notes
 
-- **P2P transport:** [Trystero](https://github.com/dmotz/trystero), Nostr strategy by default. No infrastructure needed. To self-host signaling, run `@trystero-p2p/ws-relay/server` on your VPS and swap the import in `src/net/room.ts`.
+- **P2P transport:** [Trystero](https://github.com/dmotz/trystero), Nostr strategy by default. No infrastructure needed. The discovery strategy is configurable at build time via `VITE_TRYSTERO_STRATEGY` (one of `nostr`, `mqtt`, `torrent`) — useful when the public Nostr relays are blocked or slow on a given network. See `.env.example` for details.
 - **Shared state:** [Yjs](https://yjs.dev) `Y.Doc` with a `meta` map, a `players` map, and a `deck` array. CRDT means concurrent mutations (e.g. host adjusting lives + someone ending their turn) merge cleanly with no race conditions.
 - **Persistence:** `y-indexeddb` persists the game state locally so a refresh during a game doesn't drop your seat. Cleared on Game Over.
 - **Host migration:** the host is just the lowest-seat alive player. If the host leaves, the next player takes over automatically (no manual handoff).
