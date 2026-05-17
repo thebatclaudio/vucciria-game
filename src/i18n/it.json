@@ -49,7 +49,8 @@
     "needMorePlayers": "Servono almeno 2 giocatori",
     "waitingForHost": "In attesa che l'host inizi…",
     "waitingForPeers": "Connessione alla rete P2P…",
-    "connected": "{{count}} peer connessi"
+    "connected": "{{count}} peer connessi",
+    "discoveryStalled": "Sto ancora cercando gli altri giocatori… I relay Nostr pubblici a volte sono lenti o bloccati su certe reti. Controlla la connessione, prova a cambiare rete (es. dati mobili) o chiedi all'altro giocatore di ricaricare."
   },
   "play": {
     "yourTurn": "Tocca a te",

@@ -34,6 +34,7 @@ export default function Lobby() {
   const players = usePlayers(binding?.doc ?? null)
   const peerCount = usePeerCount(binding?.room ?? null)
   const [copied, setCopied] = useState(false)
+  const [discoveryStalled, setDiscoveryStalled] = useState(false)
 
   const pending = useMemo<PendingSettings | null>(() => {
     if (!code) return null
@@ -114,6 +115,22 @@ export default function Lobby() {
     }
   }, [binding, meta?.startingLives, meta?.status])
 
+  // Surface peer-discovery failure: if we've had 0 peers for ~15s, show an
+  // actionable hint. As soon as anyone connects (or we re-bind the room),
+  // clear the flag and the corresponding timer.
+  useEffect(() => {
+    if (!binding) {
+      setDiscoveryStalled(false)
+      return
+    }
+    if (peerCount > 0) {
+      setDiscoveryStalled(false)
+      return
+    }
+    const id = setTimeout(() => setDiscoveryStalled(true), 15_000)
+    return () => clearTimeout(id)
+  }, [binding, peerCount])
+
   // Auto-navigate when the game starts.
   useEffect(() => {
     if (meta?.status === 'playing' && code) nav(`/play/${code}`)
@@ -193,6 +210,15 @@ export default function Lobby() {
             : t('lobby.waitingForPeers')}
         </span>
       </div>
+
+      {discoveryStalled && peerCount === 0 && (
+        <p
+          role="status"
+          className="text-xs text-amber-800 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 text-center"
+        >
+          ⚠️ {t('lobby.discoveryStalled')}
+        </p>
+      )}
 
       <h2 className="font-semibold text-beer-800">
         {t('lobby.players', { count: ordered.length, max: meta?.maxPlayers ?? '?' })}
