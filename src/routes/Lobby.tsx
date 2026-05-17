@@ -12,6 +12,7 @@ import {
 } from '@/net/ydoc'
 import { shuffledDeck } from '@/game/deck'
 import { orderedPlayers } from '@/game/rules'
+import { getOrCreatePlayerId, clearPlayerId } from '@/game/identity'
 import { useProfileStore } from '@/store/profile'
 import { LifeRow } from '@/components/LifeGlass'
 import type { Player } from '@/game/types'
@@ -36,6 +37,11 @@ export default function Lobby() {
   const [copied, setCopied] = useState(false)
   const [discoveryStalled, setDiscoveryStalled] = useState(false)
 
+  // Stable per-tab player id (survives refresh, distinct per tab). See
+  // src/game/identity.ts for the rationale — Trystero's wire-level selfId
+  // is regenerated on every page load and would cause duplicates.
+  const playerId = useMemo(() => (code ? getOrCreatePlayerId(code) : null), [code])
+
   const pending = useMemo<PendingSettings | null>(() => {
     if (!code) return null
     const raw = sessionStorage.getItem(`vucciria:pending:${code}`)
@@ -44,7 +50,7 @@ export default function Lobby() {
 
   // Bootstrap the doc if we're the creator.
   useEffect(() => {
-    if (!binding || !code || !pending?.isHost) return
+    if (!binding || !code || !pending?.isHost || !playerId) return
     const m = getMeta(binding.doc)
     if (m.get('code')) return // already initialized
     binding.doc.transact(() => {
@@ -53,7 +59,7 @@ export default function Lobby() {
       m.set('maxPlayers', pending.maxPlayers)
       m.set('startingLives', pending.startingLives)
       m.set('location', pending.location)
-      m.set('hostPeerId', selfId)
+      m.set('hostPeerId', playerId)
       m.set('status', 'lobby')
       m.set('turnSeat', 0)
       m.set('createdAt', Date.now())
@@ -68,7 +74,7 @@ export default function Lobby() {
       ydeck.insert(0, deck)
     })
     sessionStorage.removeItem(`vucciria:pending:${code}`)
-  }, [binding, code, pending])
+  }, [binding, code, pending, playerId])
 
   // Register ourselves as a player as soon as we have a binding + profile.
   //
@@ -79,41 +85,65 @@ export default function Lobby() {
   // player entry never exists until sync arrives, so the host can't see us
   // either once a connection finally comes up if we time out first.
   //
+  // We key by the stable `playerId` (sessionStorage-pinned, survives refresh),
+  // NOT the Trystero `selfId` (regenerated every page load). On rejoin after
+  // a refresh, if our entry still exists in the rehydrated doc we just claim
+  // it and refresh its wire `trysteroPeerId`; otherwise we create a fresh
+  // entry. Either way we never end up with a duplicate.
+  //
   // Yjs is a CRDT, so two peers writing into the `players` map concurrently
   // merges cleanly. `lives` may be temporarily wrong on the joiner until
   // `meta.startingLives` arrives — the follow-up effect below corrects it
   // while we're still in the lobby.
   useEffect(() => {
-    if (!binding || !profile) return
+    if (!binding || !profile || !playerId) return
     if (meta?.status && meta.status !== 'lobby') return
     const playersMap = getPlayers(binding.doc)
-    if (playersMap.has(selfId)) return
+    const existingMe = playersMap.get(playerId)
+    if (existingMe) {
+      // Rejoin path: refresh our wire id and (if the profile changed since
+      // last session) sync nickname/emoji. Don't touch seat or joinedAt.
+      if (
+        (existingMe.get('trysteroPeerId') as string | undefined) !== selfId
+      ) {
+        existingMe.set('trysteroPeerId', selfId)
+      }
+      if (existingMe.get('nickname') !== profile.nickname) {
+        existingMe.set('nickname', profile.nickname)
+      }
+      if (existingMe.get('emoji') !== profile.emoji) {
+        existingMe.set('emoji', profile.emoji)
+      }
+      return
+    }
+    // Fresh-join path.
     const existing = readPlayers(binding.doc)
     const nextSeat = (orderedPlayers(existing).at(-1)?.seat ?? -1) + 1
     const newPlayer: Player = {
-      peerId: selfId,
+      peerId: playerId,
       nickname: profile.nickname,
       emoji: profile.emoji,
       lives: meta?.startingLives ?? 3,
       seat: nextSeat,
       joinedAt: Date.now(),
+      trysteroPeerId: selfId,
     }
-    playersMap.set(selfId, makePlayerMap(newPlayer))
-  }, [binding, meta?.status, meta?.startingLives, profile])
+    playersMap.set(playerId, makePlayerMap(newPlayer))
+  }, [binding, meta?.status, meta?.startingLives, profile, playerId])
 
   // If we self-registered before `meta.startingLives` synced from the host,
   // correct our `lives` once meta arrives — but only while still in the lobby
   // (never overwrite mid-game lives).
   useEffect(() => {
-    if (!binding || !meta?.startingLives) return
+    if (!binding || !meta?.startingLives || !playerId) return
     if (meta.status && meta.status !== 'lobby') return
     const playersMap = getPlayers(binding.doc)
-    const me = playersMap.get(selfId)
+    const me = playersMap.get(playerId)
     if (!me) return
     if ((me.get('lives') as number) !== meta.startingLives) {
       me.set('lives', meta.startingLives)
     }
-  }, [binding, meta?.startingLives, meta?.status])
+  }, [binding, meta?.startingLives, meta?.status, playerId])
 
   // Surface peer-discovery failure: if we've had 0 peers for ~15s, show an
   // actionable hint. As soon as anyone connects (or we re-bind the room),
@@ -138,15 +168,15 @@ export default function Lobby() {
 
   // Host migration: if host has left, lowest-seat player becomes host.
   useEffect(() => {
-    if (!binding || !meta || players.length === 0) return
+    if (!binding || !meta || players.length === 0 || !playerId) return
     if (players.some((p) => p.peerId === meta.hostPeerId)) return
     const sorted = orderedPlayers(players)
-    if (sorted[0]?.peerId !== selfId) return
-    getMeta(binding.doc).set('hostPeerId', selfId)
-  }, [binding, meta, players])
+    if (sorted[0]?.peerId !== playerId) return
+    getMeta(binding.doc).set('hostPeerId', playerId)
+  }, [binding, meta, players, playerId])
 
   const ordered = orderedPlayers(players)
-  const isHost = meta?.hostPeerId === selfId
+  const isHost = meta?.hostPeerId === playerId
 
   const start = () => {
     if (!binding || ordered.length < 2) return
@@ -155,6 +185,10 @@ export default function Lobby() {
   }
 
   const leave = () => {
+    // Intentional leave: drop our stable id so a future visit to the same
+    // game code in this tab starts fresh (otherwise we'd silently rejoin
+    // and resurrect our previous seat).
+    if (code) clearPlayerId(code)
     binding?.leave()
     nav('/dashboard')
   }
@@ -232,7 +266,7 @@ export default function Lobby() {
             <span className="flex items-center gap-2">
               <span className="text-2xl">{p.emoji}</span>
               <span className="font-semibold">{p.nickname}</span>
-              {p.peerId === selfId && (
+              {p.peerId === playerId && (
                 <span className="text-xs text-beer-600">{t('lobby.you')}</span>
               )}
               {p.peerId === meta?.hostPeerId && (
@@ -243,7 +277,7 @@ export default function Lobby() {
             </span>
             <span className="flex items-center gap-2">
               <LifeRow lives={p.lives} max={meta?.startingLives ?? 3} />
-              {isHost && p.peerId !== selfId && (
+              {isHost && p.peerId !== playerId && (
                 <button
                   onClick={() => kick(p.peerId)}
                   className="text-xs text-red-600 hover:underline"

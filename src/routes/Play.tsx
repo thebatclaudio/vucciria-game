@@ -1,13 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from '@/components/Card'
 import PlayerCircle from '@/components/PlayerCircle'
 import { useGameRoom, useGameMeta, usePlayers } from '@/net/hooks'
-import { selfId } from '@/net/room'
 import { getMeta, getDeck, getPlayers } from '@/net/ydoc'
 import { drawNext } from '@/game/deck'
 import { orderedPlayers, nextTurnSeat, checkWinner } from '@/game/rules'
+import { getOrCreatePlayerId } from '@/game/identity'
 
 export default function Play() {
   const { t } = useTranslation()
@@ -17,9 +17,12 @@ export default function Play() {
   const meta = useGameMeta(binding?.doc ?? null)
   const players = usePlayers(binding?.doc ?? null)
 
+  // Stable per-tab player id (must match the one used in Lobby).
+  const playerId = useMemo(() => (code ? getOrCreatePlayerId(code) : null), [code])
+
   const ordered = orderedPlayers(players)
-  const me = ordered.find((p) => p.peerId === selfId) ?? null
-  const isHost = meta?.hostPeerId === selfId
+  const me = ordered.find((p) => p.peerId === playerId) ?? null
+  const isHost = meta?.hostPeerId === playerId
   const isMyTurn = me?.seat === meta?.turnSeat && (me?.lives ?? 0) > 0
 
   // Watch for game over.
@@ -87,7 +90,7 @@ export default function Play() {
         players={ordered}
         currentSeat={meta.turnSeat ?? 0}
         hostPeerId={meta.hostPeerId ?? ''}
-        selfPeerId={selfId}
+        selfPeerId={playerId ?? ''}
         startingLives={meta.startingLives ?? 3}
       />
 

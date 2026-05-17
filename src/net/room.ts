@@ -1,5 +1,6 @@
 import type { Room } from 'trystero'
 import * as Y from 'yjs'
+import { findPlayerIdByTrysteroPeerId, getPlayers } from './ydoc'
 
 /**
  * Trystero room bound to a Yjs document.
@@ -178,8 +179,25 @@ export function joinGameRoom(gameCode: string, doc: Y.Doc): RoomBinding {
     sendSync(state)
   })
 
-  room.onPeerLeave((peerId: string) => {
-    console.log(`[room] peer left: ${peerId}`)
+  // When a peer leaves the room (intentional leave OR connection drop),
+  // delete their entry from the shared `players` map so the lobby/play
+  // views stop showing stale ghosts. Yjs is a CRDT, so the delete merges
+  // cleanly if multiple connected peers run this concurrently. The
+  // departing peer themselves can't run this (they're gone) — which is
+  // exactly what we want: if they come back (e.g. after refresh), their
+  // sessionStorage-pinned stable playerId either still matches an existing
+  // entry (race won by us deleting before they returned: they re-register
+  // cleanly) or no entry exists (race won by them returning first: they
+  // claim their existing entry via the rejoin path in Lobby).
+  room.onPeerLeave((trysteroPeerId: string) => {
+    console.log(`[room] peer left: ${trysteroPeerId}`)
+    const playerId = findPlayerIdByTrysteroPeerId(doc, trysteroPeerId)
+    if (playerId) {
+      console.log(
+        `[room] removing departed player ${playerId} (was wire ${trysteroPeerId})`,
+      )
+      getPlayers(doc).delete(playerId)
+    }
   })
 
   getSync((state) => {

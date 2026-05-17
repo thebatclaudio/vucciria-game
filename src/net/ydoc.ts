@@ -56,6 +56,7 @@ export function readPlayers(doc: Y.Doc): Player[] {
       lives: pm.get('lives') as number,
       seat: pm.get('seat') as number,
       joinedAt: pm.get('joinedAt') as number,
+      trysteroPeerId: (pm.get('trysteroPeerId') as string | undefined) ?? null,
     })
   })
   return out
@@ -68,5 +69,24 @@ export function makePlayerMap(p: Player): Y.Map<unknown> {
   m.set('lives', p.lives)
   m.set('seat', p.seat)
   m.set('joinedAt', p.joinedAt)
+  if (p.trysteroPeerId) m.set('trysteroPeerId', p.trysteroPeerId)
   return m
+}
+
+/**
+ * Find a player entry by its current Trystero (wire) peer id. Returns the
+ * stable application playerId (the Y.Map key) so callers can `players.delete`
+ * them or update their entry. Returns null if no matching player exists.
+ */
+export function findPlayerIdByTrysteroPeerId(
+  doc: Y.Doc,
+  trysteroPeerId: string,
+): string | null {
+  let found: string | null = null
+  getPlayers(doc).forEach((pm, playerId) => {
+    if ((pm.get('trysteroPeerId') as string | undefined) === trysteroPeerId) {
+      found = playerId
+    }
+  })
+  return found
 }

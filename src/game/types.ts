@@ -17,6 +17,15 @@ export interface CardDef {
 }
 
 export interface Player {
+  /**
+   * Stable per-(tab, gameCode) application identity. Survives page refresh.
+   * Used as the key in the Yjs `players` map. See `src/game/identity.ts`.
+   *
+   * NOTE: despite the name, this is NOT Trystero's wire-level peer id —
+   * that is tracked separately in `trysteroPeerId` below, so we can map
+   * a Trystero `onPeerLeave(trysteroPeerId)` callback back to the right
+   * Yjs entry without leaking the unstable Trystero identity elsewhere.
+   */
   peerId: string
   nickname: string
   emoji: string
@@ -25,6 +34,13 @@ export interface Player {
   seat: number
   /** When this peer joined, ms since epoch (used as fallback ordering). */
   joinedAt: number
+  /**
+   * Current Trystero (WebRTC wire) peer id for this player. Updated every
+   * time the player rejoins (e.g. after a refresh). May be null briefly
+   * before the player has been registered with their wire id, or for
+   * stale entries that were rehydrated from IndexedDB.
+   */
+  trysteroPeerId?: string | null
 }
 
 export type GameStatus = 'lobby' | 'playing' | 'over'
