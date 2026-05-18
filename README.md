@@ -43,7 +43,7 @@ pnpm e2e:install  # one-time: install Playwright browsers
 pnpm e2e          # end-to-end tests (Playwright)
 ```
 
-The E2E suite includes a two-context test that simulates two peers joining the same lobby over Trystero's default public Nostr relays.
+The E2E suite includes a two-context test that simulates two peers joining the same lobby over Trystero's default public MQTT brokers.
 
 ## Deploy
 
@@ -53,7 +53,7 @@ For a custom domain or root deployment, override `BASE_PATH` in `.github/workflo
 
 ## Tech notes
 
-- **P2P transport:** [Trystero](https://github.com/dmotz/trystero), Nostr strategy by default. No infrastructure needed. The discovery strategy is configurable at build time via `VITE_TRYSTERO_STRATEGY` (one of `nostr`, `mqtt`, `torrent`) — useful when the public Nostr relays are blocked or slow on a given network. See `.env.example` for details.
+- **P2P transport:** [Trystero](https://github.com/dmotz/trystero), MQTT strategy by default. The discovery strategy is configurable at build time via `VITE_TRYSTERO_STRATEGY` (one of `mqtt`, `nostr`, `torrent`) — useful when a given network blocks WebSocket brokers. See `.env.example` for details.
 - **Shared state:** [Yjs](https://yjs.dev) `Y.Doc` with a `meta` map, a `players` map, and a `deck` array. CRDT means concurrent mutations (e.g. host adjusting lives + someone ending their turn) merge cleanly with no race conditions.
 - **Persistence:** `y-indexeddb` persists the game state locally so a refresh during a game doesn't drop your seat. Cleared on Game Over.
 - **Host migration:** the host is just the lowest-seat alive player. If the host leaves, the next player takes over automatically (no manual handoff).

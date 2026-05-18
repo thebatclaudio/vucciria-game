@@ -26,8 +26,8 @@ Run Playwright end-to-end tests, including the two-peer multiplayer sync test.
 3. Starts a preview server.
 4. Runs the spec files under `tests/e2e/`.
 
-The `two-peer-game.spec.ts` test depends on Trystero's default Nostr relays
-being reachable. If flaky in CI, swap to a self-hosted relay.
+The `two-peer-game.spec.ts` test depends on Trystero's default MQTT brokers
+being reachable. If flaky in CI, swap to a self-hosted broker.
 
 ## Example
 

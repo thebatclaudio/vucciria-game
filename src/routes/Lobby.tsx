@@ -79,7 +79,7 @@ export default function Lobby() {
   // Register ourselves as a player as soon as we have a binding + profile.
   //
   // We intentionally DO NOT wait for `meta.code` to sync from the host: when
-  // peer discovery is slow (the public Nostr relays Trystero uses by default
+  // peer discovery is slow (the public MQTT brokers Trystero uses by default
   // can take 5–30s), gating on synced meta means a joiner stares at a totally
   // empty lobby — not even themselves — with no feedback. Worse, our local
   // player entry never exists until sync arrives, so the host can't see us

@@ -50,7 +50,7 @@
     "waitingForHost": "Waiting for host to start…",
     "waitingForPeers": "Connecting to P2P network…",
     "connected": "{{count}} peer(s) connected",
-    "discoveryStalled": "Still trying to reach other players… The default Nostr relays can be slow or blocked on some networks. Check your connection, try switching networks (e.g. mobile data), or ask the other player to refresh."
+    "discoveryStalled": "Still trying to reach other players… The P2P discovery service might be blocked on your network. Check your connection, try switching networks (e.g. mobile data), or ask the other player to refresh."
   },
   "play": {
     "yourTurn": "Your turn",

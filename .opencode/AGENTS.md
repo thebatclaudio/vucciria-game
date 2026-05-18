@@ -12,7 +12,7 @@ overriding it.
 VucciriaGame is a multiplayer drinking board game.
 
 - **Runtime:** React 18 + TypeScript, bundled by Vite, shipped as a PWA.
-- **P2P transport:** Trystero over WebRTC. Default strategy is Nostr (public relays).
+- **P2P transport:** Trystero over WebRTC. Default strategy is MQTT (public brokers: Eclipse, HiveMQ, EMQX, Mosquitto).
 - **Shared state:** Yjs CRDT. The `Y.Doc` per game has `meta` (Y.Map),
   `players` (Y.Map of Y.Map), `deck` (Y.Array<string>).
 - **Persistence:** y-indexeddb per game code; cleared on Game Over.

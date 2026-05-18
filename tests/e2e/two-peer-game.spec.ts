@@ -3,9 +3,9 @@ import { test, expect, chromium } from '@playwright/test'
 /**
  * Smoke test: two browser contexts simulate two peers joining the same lobby.
  *
- * NOTE: This test depends on Trystero's default Nostr relays being reachable
+ * NOTE: This test depends on Trystero's default MQTT brokers being reachable
  * from the CI runner. If flaky in CI, swap the strategy to a self-hosted
- * ws-relay in `src/net/room.ts` and run that relay alongside the test.
+ * broker in `src/net/room.ts` and run it alongside the test.
  */
 test('two peers can see each other in lobby', async () => {
   test.setTimeout(60_000)

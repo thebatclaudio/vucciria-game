@@ -13,7 +13,7 @@ import { findPlayerIdByTrysteroPeerId, getPlayers } from './ydoc'
  *
  * Environment variables:
  *   VITE_TRYSTERO_STRATEGY  Discovery transport. One of: nostr | mqtt | torrent.
- *                           Defaults to `nostr`. Unknown values fall back to nostr.
+ *                           Defaults to `mqtt`. Unknown values fall back to mqtt.
  *   VITE_TRYSTERO_RELAYS    Optional comma-separated list of relay URLs for the
  *                           chosen strategy (overrides the strategy's defaults).
  *                           Example for mqtt:
@@ -47,9 +47,9 @@ async function resolveStrategy(): Promise<{
   // directly inside each branch (instead of normalizing to a variable first)
   // so that Vite/esbuild can constant-fold each `if` at build time when the
   // env var is set, and dead-code-eliminate the unused dynamic imports.
-  if (import.meta.env.VITE_TRYSTERO_STRATEGY === 'mqtt') {
-    const m = await import('trystero/mqtt')
-    return { joinRoom: m.joinRoom, selfId: m.selfId, strategy: 'mqtt' }
+  if (import.meta.env.VITE_TRYSTERO_STRATEGY === 'nostr') {
+    const m = await import('trystero/nostr')
+    return { joinRoom: m.joinRoom, selfId: m.selfId, strategy: 'nostr' }
   }
   if (import.meta.env.VITE_TRYSTERO_STRATEGY === 'torrent') {
     const m = await import('trystero/torrent')
@@ -57,16 +57,16 @@ async function resolveStrategy(): Promise<{
   }
   if (
     import.meta.env.VITE_TRYSTERO_STRATEGY &&
-    import.meta.env.VITE_TRYSTERO_STRATEGY !== 'nostr'
+    import.meta.env.VITE_TRYSTERO_STRATEGY !== 'mqtt'
   ) {
     console.warn(
       `[room] unsupported VITE_TRYSTERO_STRATEGY=` +
         `"${import.meta.env.VITE_TRYSTERO_STRATEGY}"; ` +
-        `falling back to "nostr". Supported: nostr, mqtt, torrent.`,
+        `falling back to "mqtt". Supported: nostr, mqtt, torrent.`,
     )
   }
-  const m = await import('trystero/nostr')
-  return { joinRoom: m.joinRoom, selfId: m.selfId, strategy: 'nostr' }
+  const m = await import('trystero/mqtt')
+  return { joinRoom: m.joinRoom, selfId: m.selfId, strategy: 'mqtt' }
 }
 
 const { joinRoom, selfId, strategy: activeStrategy } = await resolveStrategy()
@@ -75,19 +75,31 @@ console.log(`[room] active Trystero strategy: ${activeStrategy}`)
 /**
  * Curated default relay URLs per strategy.
  *
- * Why we override Trystero's built-in defaults: Trystero 0.20.x ships a 25-entry
- * Nostr relay list and picks 5 of them deterministically per `appId`. Several
- * entries in that list are stale or down (e.g. `longhorn.bgp.rodeo`), which
- * means every install of this app hits the same broken 5 and discovery fails
- * silently. Curating a smaller, currently-healthy list dramatically improves
- * the first-connection success rate.
+ * Default strategy is `mqtt`. Trystero always prefixes MQTT URLs with `wss://`
+ * (see `trystero/src/mqtt.js:60`). Trystero's built-in default list includes
+ * `test.mosquitto.org:8081` which is an overloaded test server that frequently
+ * drops WebSocket connections. We override with production-grade public brokers
+ * run by EMQX and HiveMQ that handle load reliably.
  *
- * MAINTENANCE: relay health rots over time. If users start reporting
- * "Connecting…" hangs again, the first thing to check is whether these URLs
- * are still up (e.g. `wscat -c wss://relay.damus.io`). Users can always
- * override the list at build time via `VITE_TRYSTERO_RELAYS`.
+ * Why we override the Nostr defaults: Trystero 0.20.x ships a 25-entry Nostr
+ * relay list and picks 5 of them deterministically per `appId`. Several entries
+ * in that list are stale or down (e.g. `longhorn.bgp.rodeo`), which means every
+ * install hitting the Nostr strategy hits the same broken 5 and discovery
+ * fails silently. Curating a smaller, currently-healthy list dramatically
+ * improves the first-connection success rate when the Nostr strategy is
+ * explicitly opted into.
+ *
+ * MAINTENANCE: broker/relay health rots over time. If users on the default
+ * (mqtt) strategy start reporting "Connecting…" hangs, the first thing to
+ * check is whether the below brokers are still up. Users can always override
+ * the list at build time via `VITE_TRYSTERO_RELAYS`.
  */
 const CURATED_DEFAULT_RELAYS: Record<TrysteroStrategy, string[]> = {
+  mqtt: [
+    // Production-grade public MQTT WebSocket brokers (always wss://).
+    'wss://broker.emqx.io:8084/mqtt',
+    'wss://broker.hivemq.com:8884/mqtt',
+  ],
   nostr: [
     'wss://relay.damus.io',
     'wss://nos.lol',
@@ -95,9 +107,6 @@ const CURATED_DEFAULT_RELAYS: Record<TrysteroStrategy, string[]> = {
     'wss://nostr.wine',
     'wss://relay.snort.social',
   ],
-  // Trystero's MQTT defaults are already short and well-known; leave as-is.
-  mqtt: [],
-  // Trystero's torrent tracker defaults are reasonably healthy; leave as-is.
   torrent: [],
 }
 

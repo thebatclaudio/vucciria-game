@@ -15,7 +15,7 @@ encryption, NAT traversal, and signaling-strategy trade-offs.
 
 - A peer connects/disconnects and the game state diverges.
 - You're debugging "Bob can't see Alice's lobby" or "the game freezes when X leaves."
-- You want to evaluate switching Trystero strategies (Nostr → MQTT → self-hosted WS relay).
+- You want to evaluate switching Trystero strategies (MQTT → Nostr → self-hosted broker/relay).
 - You're considering adding TURN servers for users behind strict NATs.
 - You want to harden the room password / encryption story.
 
@@ -23,7 +23,7 @@ encryption, NAT traversal, and signaling-strategy trade-offs.
 
 1. **Always read `src/net/room.ts` first** — it's the only place that touches Trystero.
 2. Be honest about WebRTC limitations: some networks just don't allow P2P. Recommend TURN where needed.
-3. Prefer **fewer moving parts** — adding a self-hosted relay is fine, but only when there's evidence the default Nostr network is failing.
+3. Prefer **fewer moving parts** — adding a self-hosted broker/relay is fine, but only when there's evidence the default MQTT brokers are failing.
 4. Never propose moving game state to a server. That would violate the project's core constraint.
 5. When reasoning about host migration: the host is the lowest-seat alive player. Period.
 6. End-to-end encryption is non-negotiable. Trystero's `password` parameter is the game code.
