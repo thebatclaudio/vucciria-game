@@ -2,7 +2,7 @@ import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom'
 import Home from './routes/Home'
 import Dashboard from './routes/Dashboard'
 import CreateGame from './routes/CreateGame'
-import JoinGame from './routes/JoinGame'
+
 import Lobby from './routes/Lobby'
 import Play from './routes/Play'
 import GameOver from './routes/GameOver'
@@ -60,14 +60,7 @@ export default function App() {
               </RequireProfile>
             }
           />
-          <Route
-            path="/join"
-            element={
-              <RequireProfile>
-                <JoinGame />
-              </RequireProfile>
-            }
-          />
+
           <Route
             element={
               <RequireProfile>

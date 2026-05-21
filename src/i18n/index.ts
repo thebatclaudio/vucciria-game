@@ -16,7 +16,7 @@ void i18n
     supportedLngs: ['en', 'it'],
     interpolation: { escapeValue: false },
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage'],
       lookupLocalStorage: 'vucciria:lang',
       caches: ['localStorage'],
     },

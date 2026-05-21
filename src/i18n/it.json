@@ -37,7 +37,7 @@
   "lobby": {
     "title": "Sala d'attesa",
     "code": "Codice partita",
-    "share": "Condividi questo codice con gli amici",
+    "share": "Condividi",
     "copy": "Copia",
     "copied": "Copiato!",
     "players": "Giocatori ({{count}}/{{max}})",

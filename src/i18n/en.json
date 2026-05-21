@@ -37,7 +37,7 @@
   "lobby": {
     "title": "Game lobby",
     "code": "Game code",
-    "share": "Share this code with your friends",
+    "share": "Share",
     "copy": "Copy",
     "copied": "Copied!",
     "players": "Players ({{count}}/{{max}})",

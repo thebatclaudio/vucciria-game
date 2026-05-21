@@ -289,13 +289,12 @@ export default function Lobby() {
         <p className="text-5xl font-mono font-bold tracking-widest text-beer-800 my-2">
           {code}
         </p>
-        <p className="text-xs text-beer-600 mb-3">{t('lobby.share')}</p>
-        <button
-          onClick={copyCode}
-          className="px-4 py-1 bg-beer-500 hover:bg-beer-600 text-white text-sm rounded-full"
-        >
-          {copied ? `✓ ${t('lobby.copied')}` : `📋 ${t('lobby.copy')}`}
-        </button>
+          <button
+            onClick={copyCode}
+            className="px-4 py-1 bg-beer-500 hover:bg-beer-600 text-white text-sm rounded-full"
+          >
+            {copied ? `✓ ${t('lobby.copied')}` : `📋 ${t('lobby.copy')}`}
+          </button>
       </div>
 
       {/* Connection status */}
