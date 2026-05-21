@@ -11,7 +11,7 @@ import {
   readPlayers,
 } from '@/net/ydoc'
 import { shuffledDeck } from '@/game/deck'
-import { orderedPlayers } from '@/game/rules'
+import { orderedPlayers, resolveSeatCollision } from '@/game/rules'
 import { getOrCreatePlayerId, clearPlayerId } from '@/game/identity'
 import { useProfileStore } from '@/store/profile'
 import { LifeRow } from '@/components/LifeGlass'
@@ -66,6 +66,9 @@ export default function Lobby() {
       m.set('lastCardId', null)
       m.set('winnerPeerId', null)
       m.set('deckIndex', 0)
+      m.set('cardPhase', 'awaiting-draw')
+      m.set('pendingChosenIds', [])
+      m.set('jollyHolderId', null)
       // initial deck seeded from code
       const seed = [...code].reduce((acc, ch) => acc * 31 + ch.charCodeAt(0), 7)
       const deck = shuffledDeck(seed)
@@ -145,6 +148,42 @@ export default function Lobby() {
     }
   }, [binding, meta?.startingLives, meta?.status, playerId])
 
+  // Heal seat collisions.
+  //
+  // We self-register before P2P sync completes (see the long comment on the
+  // registration effect above). This means both the host AND a joiner can
+  // independently compute `nextSeat = 0` and both land at seat 0. After
+  // sync, two distinct `peerId`s coexist at the same `seat`. The visible
+  // bug: in Play.tsx, `meta.turnSeat === 0` causes BOTH players to see
+  // "Your turn" and both get the draw button.
+  //
+  // The actual resolution is in the pure `resolveSeatCollision` function so
+  // it can be unit-tested in isolation (see tests/unit/rules.test.ts). This
+  // effect is the side-effecting half: it runs the resolver on every
+  // change, and if the resolver returns a new seat, writes it.
+  //
+  // Guards:
+  //   - Lobby only — never change seats mid-game.
+  //   - `peerCount > 0` so we don't preemptively yield to a peer that
+  //     isn't actually there.
+  useEffect(() => {
+    if (!binding || !playerId) return
+    if (meta?.status && meta.status !== 'lobby') return
+    if (peerCount === 0) return
+    if (players.length < 2) return
+    const newSeat = resolveSeatCollision(players, playerId)
+    if (newSeat === null) return
+    const playersMap = getPlayers(binding.doc)
+    const myMap = playersMap.get(playerId)
+    if (!myMap) return
+    const oldSeat = myMap.get('seat') as number
+    console.log(
+      `[lobby] seat collision detected at seat=${oldSeat}; ` +
+        `reassigning ${playerId} → seat=${newSeat}`,
+    )
+    myMap.set('seat', newSeat)
+  }, [binding, players, meta?.status, playerId, peerCount])
+
   // Surface peer-discovery failure: if we've had 0 peers for ~15s, show an
   // actionable hint. As soon as anyone connects (or we re-bind the room),
   // clear the flag and the corresponding timer.
@@ -166,14 +205,33 @@ export default function Lobby() {
     if (meta?.status === 'playing' && code) nav(`/play/${code}`)
   }, [meta?.status, code, nav])
 
-  // Host migration: if host has left, lowest-seat player becomes host.
+  // Host migration: if the known host has left, lowest-seat player becomes host.
+  //
+  // CRITICAL: we must distinguish "no host known yet" (meta hasn't synced from
+  // the network) from "host has actually left." If we don't, a joiner that
+  // self-registers BEFORE P2P discovery completes will see `players=[me]` +
+  // `hostPeerId=undefined`, fail the `players.some(p => p.peerId === undefined)`
+  // check, elect itself as host, persist that to IndexedDB, and then fight the
+  // real host's state once sync finally arrives. The user-visible bug is:
+  // "Browser B joins a game and sees only itself, marked as host."
+  //
+  // Guards:
+  //   1. `meta.hostPeerId` must be a defined string (= host bootstrap reached
+  //      this peer). Until then we have no opinion about who the host is.
+  //   2. We must have at least one connected wire peer. With 0 peers we can't
+  //      tell "host left" from "host hasn't reached us yet."
+  //   3. The pending settings flag must be absent — if we're the original
+  //      host, the bootstrap effect handles host assignment, not this one.
   useEffect(() => {
     if (!binding || !meta || players.length === 0 || !playerId) return
-    if (players.some((p) => p.peerId === meta.hostPeerId)) return
+    const knownHost = meta.hostPeerId
+    if (typeof knownHost !== 'string' || knownHost.length === 0) return
+    if (peerCount === 0) return
+    if (players.some((p) => p.peerId === knownHost)) return
     const sorted = orderedPlayers(players)
     if (sorted[0]?.peerId !== playerId) return
     getMeta(binding.doc).set('hostPeerId', playerId)
-  }, [binding, meta, players, playerId])
+  }, [binding, meta, players, playerId, peerCount])
 
   const ordered = orderedPlayers(players)
   const isHost = meta?.hostPeerId === playerId
@@ -195,7 +253,16 @@ export default function Lobby() {
 
   const kick = (peerId: string) => {
     if (!binding || !isHost) return
-    getPlayers(binding.doc).delete(peerId)
+    binding.doc.transact(() => {
+      getPlayers(binding.doc).delete(peerId)
+      // Defensive: kicking is rare in the lobby (jolly only exists
+      // mid-game), but keep meta consistent in case a session reuses
+      // the doc after a Game Over.
+      const m = getMeta(binding.doc)
+      if ((m.get('jollyHolderId') as string | null) === peerId) {
+        m.set('jollyHolderId', null)
+      }
+    })
   }
 
   const copyCode = async () => {

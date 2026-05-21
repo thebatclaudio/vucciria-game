@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom'
 import Home from './routes/Home'
 import Dashboard from './routes/Dashboard'
 import CreateGame from './routes/CreateGame'
@@ -8,12 +8,30 @@ import Play from './routes/Play'
 import GameOver from './routes/GameOver'
 import BeerBubbles from './components/BeerBubbles'
 import LanguageToggle from './components/LanguageToggle'
+import { GameRoomProvider } from './net/GameRoomProvider'
 import { useProfileStore } from './store/profile'
 
 function RequireProfile({ children }: { children: React.ReactNode }) {
   const profile = useProfileStore((s) => s.profile)
   if (!profile) return <Navigate to="/" replace />
   return <>{children}</>
+}
+
+/**
+ * Layout route element that owns the Y.Doc + Trystero room binding for the
+ * whole lifetime of a game. Wrapping `/lobby/:code`, `/play/:code`, and
+ * `/over/:code` under this layout means navigating between them does NOT
+ * recreate the binding — that was the root cause of the "first turn isn't
+ * synchronized" bug (see `GameRoomProvider.tsx` for the full history).
+ */
+function GameRoomLayout() {
+  const { code } = useParams<{ code: string }>()
+  if (!code) return <Navigate to="/" replace />
+  return (
+    <GameRoomProvider code={code}>
+      <Outlet />
+    </GameRoomProvider>
+  )
 }
 
 export default function App() {
@@ -51,29 +69,16 @@ export default function App() {
             }
           />
           <Route
-            path="/lobby/:code"
             element={
               <RequireProfile>
-                <Lobby />
+                <GameRoomLayout />
               </RequireProfile>
             }
-          />
-          <Route
-            path="/play/:code"
-            element={
-              <RequireProfile>
-                <Play />
-              </RequireProfile>
-            }
-          />
-          <Route
-            path="/over/:code"
-            element={
-              <RequireProfile>
-                <GameOver />
-              </RequireProfile>
-            }
-          />
+          >
+            <Route path="/lobby/:code" element={<Lobby />} />
+            <Route path="/play/:code" element={<Play />} />
+            <Route path="/over/:code" element={<GameOver />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

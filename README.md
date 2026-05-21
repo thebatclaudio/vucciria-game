@@ -26,6 +26,20 @@ Every player starts with N shot glasses. Each glass = one life:
 
 Reach 0 and you're eliminated.
 
+### Cards resolve themselves (mostly)
+
+Most cards apply their effect automatically — no honor system needed:
+
+- **Auto** (`bevi`, `treAveMaria`, `bevonoTutti`, `pipi`) — the right people lose a shot the moment the card is drawn.
+- **Drawer picks** (`beviOoffri`, `tuEcumpari`) — the drawer taps a target on the player circle.
+- **Host picks** (`setteBum`, `ventuno`, `storia`, `zingBoing`) — for group minigames, the host taps whoever lost.
+- **Duel** (`sfida`) — the drawer picks the opponent; the host then declares the loser.
+- **Manual** (`mossa`) — the table polices itself. The host can use the manual ±1 panel if someone forgets a move.
+
+### The Jolly token 🃏
+
+Drawing `jolly` gives you a 🃏 token next to your shots. It absorbs the **next** shot you'd lose. If someone else draws `jolly`, the token passes to them.
+
 ## Run locally
 
 ```bash

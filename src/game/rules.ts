@@ -51,3 +51,44 @@ export function aliveNeighbors(
   const right = alive[(idx + 1) % alive.length]
   return { left, right }
 }
+
+/**
+ * Deterministic seat-collision resolver.
+ *
+ * Background: peers self-register their player entry BEFORE P2P sync
+ * completes (so the local lobby UI feels responsive). This means two peers
+ * can independently compute `nextSeat = 0` and both land at seat 0. The
+ * visible bug is "both players see 'Your turn' once the game starts."
+ *
+ * This pure function decides what `myself` should do given the full list
+ * of players (post-sync). It returns:
+ *   - `null`: no action needed (no collision, or I won the lex tiebreaker).
+ *   - `number`: my new seat. The caller should write this into the Y.Map.
+ *
+ * Resolution policy:
+ *   1. Find all players sharing my current seat.
+ *   2. If only me, no-op.
+ *   3. Otherwise, lex-smallest `peerId` among colliders keeps the seat;
+ *      every other colliding player picks `max(allSeats) + 1`.
+ *
+ * Idempotent: running this repeatedly converges. Two losers racing to the
+ * same `max+1` will collide too — but the next pass will resolve that one
+ * the same way (lex-smallest keeps, the other moves to max+1 again). So
+ * eventual consistency holds, with at most N passes for N colliders.
+ *
+ * Deterministic across peers: every peer computes the same winner from the
+ * same player list, so Yjs writes are consistent.
+ */
+export function resolveSeatCollision(
+  players: Player[],
+  myPeerId: string,
+): number | null {
+  const me = players.find((p) => p.peerId === myPeerId)
+  if (!me) return null
+  const colliders = players.filter((p) => p.seat === me.seat)
+  if (colliders.length < 2) return null
+  const winner = [...colliders].sort((a, b) => a.peerId.localeCompare(b.peerId))[0]
+  if (winner.peerId === myPeerId) return null
+  const maxSeat = players.reduce((m, p) => Math.max(m, p.seat), -1)
+  return maxSeat + 1
+}

@@ -26,12 +26,37 @@ export default function LifeGlass({
   )
 }
 
-export function LifeRow({ lives, max }: { lives: number; max: number }) {
+/**
+ * Row of life glasses. If `hasJolly` is true an extra 🃏 token is rendered
+ * after the shots, visually representing the "spare life" the player holds.
+ */
+export function LifeRow({
+  lives,
+  max,
+  hasJolly = false,
+}: {
+  lives: number
+  max: number
+  hasJolly?: boolean
+}) {
   return (
-    <div className="flex gap-0.5" aria-label={`${lives} of ${max} shots remaining`}>
+    <div
+      className="flex gap-0.5 items-center"
+      aria-label={`${lives} of ${max} shots remaining${hasJolly ? ', plus jolly token' : ''}`}
+    >
       {Array.from({ length: max }).map((_, i) => (
         <LifeGlass key={i} filled={i < lives} />
       ))}
+      {hasJolly && (
+        <span
+          role="img"
+          aria-label="jolly token"
+          title="Jolly token — absorbs the next lost shot"
+          style={{ fontSize: '20px', lineHeight: 1, marginLeft: '2px' }}
+        >
+          🃏
+        </span>
+      )}
     </div>
   )
 }

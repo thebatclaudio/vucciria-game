@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import * as Y from 'yjs'
-import { joinGameRoom, type RoomBinding } from './room'
-import { persistGame } from './persistence'
+import type { RoomBinding } from './room'
+import { GameRoomContext } from './gameRoomContext'
 import {
-  createGameDoc,
   getPlayers,
   getMeta,
   readMeta,
@@ -12,30 +11,24 @@ import {
 import type { GameMeta, Player } from '@/game/types'
 
 /**
- * Hook that joins (or rejoins) a game room by code. Returns the live
- * Yjs doc + binding. The doc is created on first call and reused.
+ * Returns the live Yjs doc + Trystero binding for the current game.
+ *
+ * Reads from `GameRoomContext`, which is owned by the layout-level
+ * `<GameRoomProvider>` in `src/App.tsx`. The signature still takes the
+ * `code` parameter for backwards compatibility with call sites and as
+ * self-documentation at the use site, but the binding is determined by
+ * the surrounding provider, not by the argument.
+ *
+ * Returns `null` if the provider hasn't constructed the binding yet, or
+ * if this hook is called outside the provider tree (e.g. on a route that
+ * intentionally does not run in a game room).
+ *
+ * See `src/net/GameRoomProvider.tsx` for the rationale behind hoisting
+ * the binding above the route boundary (the "first turn isn't
+ * synchronized" bug).
  */
-export function useGameRoom(code: string | undefined): RoomBinding | null {
-  const [binding, setBinding] = useState<RoomBinding | null>(null)
-  const ref = useRef<RoomBinding | null>(null)
-
-  useEffect(() => {
-    if (!code) return
-    const doc = createGameDoc()
-    const destroyPersistence = persistGame(code, doc)
-    const b = joinGameRoom(code, doc)
-    ref.current = b
-    setBinding(b)
-    return () => {
-      destroyPersistence()
-      b.leave()
-      doc.destroy()
-      ref.current = null
-      setBinding(null)
-    }
-  }, [code])
-
-  return binding
+export function useGameRoom(_code?: string | undefined): RoomBinding | null {
+  return useContext(GameRoomContext)
 }
 
 /** Subscribe to the shared meta map. */

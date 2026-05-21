@@ -54,15 +54,34 @@
   },
   "play": {
     "yourTurn": "Your turn",
+    "yourTurnDraw": "Your turn — draw a card",
+    "youAreShowing": "You're showing the card",
     "turnOf": "{{name}}'s turn",
+    "waitingForDraw": "⏳ Waiting for {{name}} to draw",
+    "showingCard": "🎴 {{name}} is showing the card",
+    "notYourTurn": "It's not your turn",
     "draw": "Draw a card",
     "endTurn": "End turn",
+    "confirmPick": "Confirm",
     "eliminated": "Eliminated",
     "livesLabel": "Shots left",
     "hostActions": "Host actions",
+    "hostActionsHint": "Manual override — adjust shots or remove a player.",
     "addLife": "+1 shot",
     "removeLife": "-1 shot",
-    "kick": "Remove player"
+    "kick": "Remove player",
+    "phase": {
+      "drawerPick": "Pick a player",
+      "duelPickOpponent": "Pick your opponent",
+      "hostPickLoser": "Pick the loser",
+      "hostPickLosers": "Tap everyone who lost (can be none)",
+      "hostPickDuelLoser": "Pick the duel loser",
+      "waitingDrawerPick": "⏳ {{name}} is picking a player",
+      "waitingDuelPick": "⏳ {{name}} is choosing an opponent",
+      "waitingHostPick": "⏳ Waiting for the host's decision",
+      "resolvedYou": "Effect applied — end your turn",
+      "resolvedOther": "{{name}} can end their turn"
+    }
   },
   "over": {
     "title": "Game over",
@@ -98,7 +117,7 @@
     },
     "jolly": {
       "title": "Jolly",
-      "desc": "Lucky! Gain +1 shot."
+      "desc": "Lucky! You hold the 🃏 token — it absorbs your next lost shot. If someone else draws Jolly, the token passes to them."
     },
     "pipi": {
       "title": "Bathroom break",

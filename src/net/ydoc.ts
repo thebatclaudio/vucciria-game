@@ -31,6 +31,14 @@ export function getDeck(doc: Y.Doc): Y.Array<string> {
 
 export function readMeta(doc: Y.Doc): Partial<GameMeta> {
   const m = getMeta(doc)
+  const lastCardId = (m.get('lastCardId') as string | null) ?? null
+  // Default `cardPhase` so docs created before the phase-machine landed
+  // (rehydrated from IndexedDB) still produce a sensible UI: with no card
+  // on the table we're awaiting a draw, otherwise the card already
+  // resolved (best we can infer — those old docs had no in-flight choices).
+  const cardPhase =
+    (m.get('cardPhase') as GameMeta['cardPhase'] | undefined) ??
+    (lastCardId ? 'resolved' : 'awaiting-draw')
   return {
     code: m.get('code') as string,
     name: m.get('name') as string,
@@ -41,8 +49,12 @@ export function readMeta(doc: Y.Doc): Partial<GameMeta> {
     status: (m.get('status') as GameMeta['status']) ?? 'lobby',
     turnSeat: (m.get('turnSeat') as number) ?? 0,
     createdAt: m.get('createdAt') as number,
-    lastCardId: (m.get('lastCardId') as string | null) ?? null,
+    lastCardId,
     winnerPeerId: (m.get('winnerPeerId') as string | null) ?? null,
+    cardPhase,
+    pendingChosenIds:
+      (m.get('pendingChosenIds') as string[] | undefined) ?? [],
+    jollyHolderId: (m.get('jollyHolderId') as string | null) ?? null,
   }
 }
 

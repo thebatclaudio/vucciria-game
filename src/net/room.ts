@@ -1,6 +1,6 @@
 import type { Room } from 'trystero'
 import * as Y from 'yjs'
-import { findPlayerIdByTrysteroPeerId, getPlayers } from './ydoc'
+import { findPlayerIdByTrysteroPeerId, getMeta, getPlayers } from './ydoc'
 
 /**
  * Trystero room bound to a Yjs document.
@@ -205,7 +205,16 @@ export function joinGameRoom(gameCode: string, doc: Y.Doc): RoomBinding {
       console.log(
         `[room] removing departed player ${playerId} (was wire ${trysteroPeerId})`,
       )
-      getPlayers(doc).delete(playerId)
+      doc.transact(() => {
+        getPlayers(doc).delete(playerId)
+        // If the departed player was holding the Jolly token, clear it so
+        // a "ghost" id never lingers in meta. Surviving players see the
+        // 🃏 disappear with the avatar.
+        const meta = getMeta(doc)
+        if ((meta.get('jollyHolderId') as string | null) === playerId) {
+          meta.set('jollyHolderId', null)
+        }
+      })
     }
   })
 

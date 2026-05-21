@@ -54,15 +54,34 @@
   },
   "play": {
     "yourTurn": "Tocca a te",
+    "yourTurnDraw": "Tocca a te — pesca una carta",
+    "youAreShowing": "Stai mostrando la carta",
     "turnOf": "Tocca a {{name}}",
+    "waitingForDraw": "⏳ Aspettando che {{name}} peschi",
+    "showingCard": "🎴 {{name}} sta mostrando la carta",
+    "notYourTurn": "Non è il tuo turno",
     "draw": "Pesca una carta",
     "endTurn": "Fine turno",
+    "confirmPick": "Conferma",
     "eliminated": "Eliminato",
     "livesLabel": "Bicchierini rimasti",
     "hostActions": "Azioni host",
+    "hostActionsHint": "Modifica manuale — regola i bicchierini o rimuovi un giocatore.",
     "addLife": "+1 bicchierino",
     "removeLife": "-1 bicchierino",
-    "kick": "Rimuovi giocatore"
+    "kick": "Rimuovi giocatore",
+    "phase": {
+      "drawerPick": "Scegli un giocatore",
+      "duelPickOpponent": "Scegli il tuo avversario",
+      "hostPickLoser": "Scegli chi ha perso",
+      "hostPickLosers": "Tocca tutti quelli che hanno perso (anche nessuno)",
+      "hostPickDuelLoser": "Scegli chi ha perso la sfida",
+      "waitingDrawerPick": "⏳ {{name}} sta scegliendo un giocatore",
+      "waitingDuelPick": "⏳ {{name}} sta scegliendo l'avversario",
+      "waitingHostPick": "⏳ In attesa della decisione dell'host",
+      "resolvedYou": "Effetto applicato — chiudi il turno",
+      "resolvedOther": "{{name}} può chiudere il turno"
+    }
   },
   "over": {
     "title": "Partita finita",
@@ -98,7 +117,7 @@
     },
     "jolly": {
       "title": "Jolly",
-      "desc": "Fortuna! Guadagni +1 bicchierino."
+      "desc": "Fortuna! Tieni tu il 🃏 — assorbe il prossimo bicchierino che perderesti. Se qualcun altro pesca Jolly, il gettone passa a lui."
     },
     "pipi": {
       "title": "Pipì",
