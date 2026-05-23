@@ -91,6 +91,11 @@
     "cancel": "Annulla",
     "confirm": "Conferma"
   },
+  "pwa": {
+    "updateAvailable": "È disponibile una nuova versione",
+    "refresh": "Aggiorna",
+    "later": "Più tardi"
+  },
   "cards": {
     "mossa": {
       "title": "Mossa",

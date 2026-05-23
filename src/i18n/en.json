@@ -91,6 +91,11 @@
     "cancel": "Cancel",
     "confirm": "Confirm"
   },
+  "pwa": {
+    "updateAvailable": "A new version is available",
+    "refresh": "Refresh",
+    "later": "Dismiss"
+  },
   "cards": {
     "mossa": {
       "title": "Mossa",

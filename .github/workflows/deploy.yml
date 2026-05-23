@@ -33,6 +33,10 @@ jobs:
           # If your repo is at https://<user>.github.io/<repo>/, set BASE_PATH=/<repo>/
           # For a user/org root site (https://<user>.github.io/), leave empty or '/'
           BASE_PATH: /${{ github.event.repository.name }}/
+          # Forwarded into the bundle via `define.__APP_VERSION__` in
+          # vite.config.ts so the BuildVersionTag footer shows the deployed
+          # commit on every phone — no DevTools needed to verify a rollout.
+          GITHUB_SHA: ${{ github.sha }}
         run: pnpm build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

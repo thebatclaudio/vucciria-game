@@ -7,7 +7,9 @@ import Lobby from './routes/Lobby'
 import Play from './routes/Play'
 import GameOver from './routes/GameOver'
 import BeerBubbles from './components/BeerBubbles'
+import BuildVersionTag from './components/BuildVersionTag'
 import LanguageToggle from './components/LanguageToggle'
+import PwaUpdateToast from './components/PwaUpdateToast'
 import { GameRoomProvider } from './net/GameRoomProvider'
 import { useProfileStore } from './store/profile'
 
@@ -41,6 +43,8 @@ export default function App() {
       <div className="fixed top-3 right-3 z-50">
         <LanguageToggle />
       </div>
+      <PwaUpdateToast />
+      <BuildVersionTag />
       <main className="relative z-10 min-h-screen flex flex-col items-center px-4 py-6">
         <Routes>
           <Route path="/" element={<Home />} />

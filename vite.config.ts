@@ -9,6 +9,17 @@ const base = process.env.BASE_PATH ?? '/'
 
 export default defineConfig({
   base,
+  // Build-time constant exposed to the app for the version footer + logging.
+  // Prefer the short Git SHA injected by the GitHub Actions deploy workflow;
+  // fall back to the npm package version, then a literal 'dev' for local
+  // `pnpm dev` / `pnpm build` runs without a SHA in the environment.
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      (process.env.GITHUB_SHA && process.env.GITHUB_SHA.slice(0, 7)) ||
+        process.env.npm_package_version ||
+        'dev',
+    ),
+  },
   // Bump build target so top-level await (used in src/net/room.ts to bind the
   // chosen Trystero strategy at module load) survives esbuild transpilation.
   // ES2022 is supported by Chrome 94+, Safari 15+, Firefox 93+ — all browsers
@@ -25,6 +36,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // We register the SW ourselves from <PwaUpdateToast /> so we can show
+      // an opt-in toast when a new version is waiting. Without this flag the
+      // plugin would auto-inject a silent <script src="/registerSW.js">.
+      injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'VucciriaGame',
@@ -62,6 +77,18 @@ export default defineConfig({
         globPatterns: [
           '**/*.{js,css,html,svg,png,ico,webmanifest,json,wasm}',
         ],
+        // New SW takes control of already-open pages as soon as it activates.
+        // Combined with the explicit `updateSW(true)` triggered from the
+        // <PwaUpdateToast /> "Refresh" button, this gives us a clean reload
+        // path without forcing users out of an in-progress session.
+        clientsClaim: true,
+        // We deliberately keep `skipWaiting` off: the new SW sits in "waiting"
+        // until the user accepts the update via the toast. Tapping "Refresh"
+        // posts the SKIP_WAITING message and triggers `controllerchange`.
+        skipWaiting: false,
+        // Wipe Workbox precaches from previous builds so phones don't keep
+        // gigabytes of stale Lottie JSON around after a few deploys.
+        cleanupOutdatedCaches: true,
         // Per-asset budget bumped because some Noto Lottie JSON payloads are
         // ~200 KB and the default Workbox limit (2 MiB total) is comfortable
         // but the per-file warning trips at default ~2 MiB. Stay safe.

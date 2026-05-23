@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Belt-and-braces: nudge intermediate caches / browsers to revalidate
+         the HTML shell on every navigation. Hashed JS/CSS bundles are
+         already immutable thanks to Vite's content-hashed filenames, and
+         the service worker handles its own freshness, but this prevents a
+         stale index.html from ever serving a reference to a no-longer-cached
+         asset on the first paint after a deploy. -->
+    <meta http-equiv="Cache-Control" content="no-cache, must-revalidate" />
     <meta name="theme-color" content="#f59e0b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />

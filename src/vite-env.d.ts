@@ -1,4 +1,10 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
+
+// Injected at build time by `define` in vite.config.ts. Holds the short Git
+// SHA on CI builds, the npm package version when run via pnpm scripts, or
+// the literal string 'dev' for raw local builds.
+declare const __APP_VERSION__: string
 
 // Trystero ships a single ambient module declaration at the package root
 // (`declare module 'trystero'`) but its `package.json#exports` map exposes
