@@ -38,14 +38,14 @@ function GameRoomLayout() {
 
 export default function App() {
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       <BeerBubbles />
       <div className="fixed top-3 right-3 z-50">
         <LanguageToggle />
       </div>
       <PwaUpdateToast />
       <BuildVersionTag />
-      <main className="relative z-10 min-h-screen flex flex-col items-center px-4 py-6">
+      <main className="relative z-10 min-h-dvh flex flex-col items-center px-4 py-6">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route
