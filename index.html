@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- iOS Safari "Add to Home Screen" tile artwork. Chromium uses the
+         manifest icons array (see vite.config.ts) for the install prompt;
+         iOS Safari uses this <link> instead because it doesn't honor the
+         web app manifest's icons field. Path is rewritten by Vite to
+         include the configured base (e.g. /vucciria-game/) at build time. -->
+    <link rel="apple-touch-icon" href="/manifest-icons/apple-touch-icon-180x180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Belt-and-braces: nudge intermediate caches / browsers to revalidate
          the HTML shell on every navigation. Hashed JS/CSS bundles are

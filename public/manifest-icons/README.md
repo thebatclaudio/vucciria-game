@@ -1,13 +1,46 @@
 # PWA Icons
 
-Replace these placeholders with real artwork before shipping:
+All PNG/ICO files in this directory are **generated artifacts** produced
+from `source.svg` by [`@vite-pwa/assets-generator`][gen]. Do not edit them
+by hand.
 
-- `icon-192.png` — 192×192 PNG
-- `icon-512.png` — 512×512 PNG
-- `icon-512-maskable.png` — 512×512 PNG with safe-zone padding (maskable)
+## Files
 
-Tip: run `npx @vite-pwa/assets-generator` from a single source SVG to
-generate all sizes automatically. See https://vite-pwa-org.netlify.app/assets-generator/
+| File                            | Purpose                                                              |
+| ------------------------------- | -------------------------------------------------------------------- |
+| `source.svg`                    | Hand-authored source artwork (the only file you should edit).        |
+| `pwa-64x64.png`                 | Small PWA icon (browser UI, favicon fallback).                       |
+| `pwa-192x192.png`               | Android home-screen icon (manifest `icons[]`).                       |
+| `pwa-512x512.png`               | Splash-screen / high-DPI icon (manifest `icons[]`).                  |
+| `maskable-icon-512x512.png`     | Android adaptive icon — kept inside the 40% safe zone of `source.svg`. |
+| `apple-touch-icon-180x180.png`  | iOS Safari "Add to Home Screen" tile (referenced by `index.html`).   |
+| `favicon.ico`                   | Legacy favicon (unused — root `/favicon.svg` is primary).            |
 
-Until you replace these, the PWA install prompt will fall back to the
-browser's default app icon (still functional, just not branded).
+## Regenerate
+
+After editing `source.svg`, run from the repo root:
+
+```bash
+npx @vite-pwa/assets-generator --preset minimal public/manifest-icons/source.svg
+```
+
+The generator writes outputs next to the source file. Commit all updated
+PNGs alongside the SVG change.
+
+## Editing the source artwork
+
+`source.svg` is a 512×512 viewBox. Keep the focal artwork **inside the
+central 60%** (radius ≤ 205 px from center) so the same source works for
+both the standard and the `purpose: maskable` Android variant — Android
+crops maskable icons to circular / squircle / rounded-rect shapes and
+chops off anything outside the safe zone.
+
+The palette uses the app's Tailwind `beer.*` scale, see `tailwind.config.ts`.
+
+## Where these are wired up
+
+- Manifest `icons[]` entries → `vite.config.ts` (`VitePWA({ manifest: { icons: [...] } })`).
+- iOS apple-touch-icon → `index.html` `<link rel="apple-touch-icon" ...>`.
+- SW precache inclusion → `VitePWA({ includeAssets: [...] })` in `vite.config.ts`.
+
+[gen]: https://vite-pwa-org.netlify.app/assets-generator/
