@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useProfileStore } from '@/store/profile'
 import { isValidGameCode, normalizeGameCode } from '@/game/codes'
+import NotoEmoji from '@/components/NotoEmoji'
 
 export default function Dashboard() {
   const { t } = useTranslation()
@@ -18,9 +19,16 @@ export default function Dashboard() {
 
   return (
     <div className="w-full max-w-md flex flex-col items-center gap-6 mt-12">
-      <h1 className="text-3xl text-beer-800 font-bold text-center">
-        {profile.emoji} {t('dashboard.welcome', { name: profile.nickname })}
-      </h1>
+      <div className="flex flex-col items-center gap-1">
+        <NotoEmoji emoji={profile.emoji} size={48} animated />
+        <p className="text-2xl font-bold text-beer-800">{profile.nickname}</p>
+        <button
+          onClick={() => { clear(); nav('/') }}
+          className="text-sm text-beer-700 underline"
+        >
+          {t('dashboard.changeProfile')}
+        </button>
+      </div>
 
       <button
         onClick={() => nav('/create')}
@@ -57,15 +65,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      <button
-        onClick={() => {
-          clear()
-          nav('/')
-        }}
-        className="mt-4 text-sm text-beer-700 underline"
-      >
-        {t('dashboard.changeProfile')}
-      </button>
     </div>
   )
 }

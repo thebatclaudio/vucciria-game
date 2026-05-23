@@ -42,7 +42,6 @@ export function readMeta(doc: Y.Doc): Partial<GameMeta> {
   return {
     code: m.get('code') as string,
     name: m.get('name') as string,
-    maxPlayers: m.get('maxPlayers') as number,
     startingLives: m.get('startingLives') as number,
     location: (m.get('location') as string | null) ?? null,
     hostPeerId: m.get('hostPeerId') as string,

@@ -14,12 +14,11 @@ import { shuffledDeck } from '@/game/deck'
 import { orderedPlayers, resolveSeatCollision } from '@/game/rules'
 import { getOrCreatePlayerId, clearPlayerId } from '@/game/identity'
 import { useProfileStore } from '@/store/profile'
-import { LifeRow } from '@/components/LifeGlass'
+import NotoEmoji from '@/components/NotoEmoji'
 import type { Player } from '@/game/types'
 
 interface PendingSettings {
   name: string
-  maxPlayers: number
   startingLives: number
   location: string | null
   isHost: boolean
@@ -56,7 +55,6 @@ export default function Lobby() {
     binding.doc.transact(() => {
       m.set('code', code)
       m.set('name', pending.name)
-      m.set('maxPlayers', pending.maxPlayers)
       m.set('startingLives', pending.startingLives)
       m.set('location', pending.location)
       m.set('hostPeerId', playerId)
@@ -283,6 +281,16 @@ export default function Lobby() {
       <h1 className="text-2xl font-bold text-beer-800 text-center">
         {meta?.name ?? t('lobby.title')}
       </h1>
+      {meta && (
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-sm text-beer-800 font-semibold">{t('create.startingLives')}</span>
+          <div className="flex justify-center gap-0.5 text-xl">
+            {Array.from({ length: meta.startingLives ?? 3 }).map((_, i) => (
+              <span key={i}>🥃</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white/90 rounded-2xl p-4 text-center shadow">
         <p className="text-sm text-beer-700">{t('lobby.code')}</p>
@@ -321,7 +329,7 @@ export default function Lobby() {
       )}
 
       <h2 className="font-semibold text-beer-800">
-        {t('lobby.players', { count: ordered.length, max: meta?.maxPlayers ?? '?' })}
+        {t('lobby.players', { count: ordered.length })}
       </h2>
       <ul className="flex flex-col gap-2">
         {ordered.map((p) => (
@@ -329,29 +337,24 @@ export default function Lobby() {
             key={p.peerId}
             className="flex items-center justify-between bg-white/80 rounded-lg px-3 py-2"
           >
-            <span className="flex items-center gap-2">
-              <span className="text-2xl">{p.emoji}</span>
-              <span className="font-semibold">{p.nickname}</span>
+            <span className="flex items-center gap-2 min-w-0">
+              <NotoEmoji emoji={p.emoji} size={28} animated />
+              <span className="font-semibold truncate">
+                {p.peerId === meta?.hostPeerId && <span className="mr-1">👑</span>}
+                {p.nickname}
+              </span>
               {p.peerId === playerId && (
                 <span className="text-xs text-beer-600">{t('lobby.you')}</span>
               )}
-              {p.peerId === meta?.hostPeerId && (
-                <span className="text-xs bg-beer-200 text-beer-800 px-2 py-0.5 rounded-full">
-                  👑 {t('lobby.host')}
-                </span>
-              )}
             </span>
-            <span className="flex items-center gap-2">
-              <LifeRow lives={p.lives} max={meta?.startingLives ?? 3} />
-              {isHost && p.peerId !== playerId && (
-                <button
-                  onClick={() => kick(p.peerId)}
-                  className="text-xs text-red-600 hover:underline"
-                >
-                  {t('lobby.kick')}
-                </button>
-              )}
-            </span>
+            {isHost && p.peerId !== playerId && (
+              <button
+                onClick={() => kick(p.peerId)}
+                className="text-xs text-red-600 hover:underline shrink-0"
+              >
+                {t('lobby.kick')}
+              </button>
+            )}
           </li>
         ))}
       </ul>

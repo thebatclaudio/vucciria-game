@@ -7,7 +7,6 @@
     "nicknamePlaceholder": "Il tuo nickname",
     "nicknameTooShort": "Almeno 2 caratteri",
     "pickEmoji": "Scegli un avatar",
-    "shuffle": "Mescola",
     "play": "Gioca"
   },
   "dashboard": {
@@ -20,7 +19,6 @@
     "title": "Crea una partita",
     "name": "Nome partita",
     "namePlaceholder": "Venerdì sera",
-    "maxPlayers": "Giocatori max",
     "startingLives": "Bicchierini iniziali",
     "location": "Luogo (opzionale)",
     "locationPlaceholder": "Casa mia",
@@ -40,9 +38,8 @@
     "share": "Condividi",
     "copy": "Copia",
     "copied": "Copiato!",
-    "players": "Giocatori ({{count}}/{{max}})",
+    "players": "Giocatori ({{count}})",
     "you": "(tu)",
-    "host": "host",
     "kick": "Caccia",
     "leave": "Esci",
     "start": "Inizia",

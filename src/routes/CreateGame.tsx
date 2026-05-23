@@ -2,26 +2,31 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { generateGameCode } from '@/game/codes'
+import { GAME_NAMES_EN } from '@/assets/gameNamesEn'
+import { GAME_NAMES_IT } from '@/assets/gameNamesIt'
+
+const LIVES_MIN = 1
+const LIVES_MAX = 5
+
+function pickRandom<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
 
 export default function CreateGame() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const nav = useNavigate()
 
-  const [name, setName] = useState('')
-  const [maxPlayers, setMaxPlayers] = useState(6)
+  const names = i18n.resolvedLanguage === 'it' ? GAME_NAMES_IT : GAME_NAMES_EN
+  const [name, setName] = useState(() => pickRandom(names))
   const [startingLives, setStartingLives] = useState(3)
-  const [location, setLocation] = useState('')
 
   const create = () => {
     const code = generateGameCode()
-    // Stash desired settings for the Lobby to initialize the Y.Doc.
     sessionStorage.setItem(
       `vucciria:pending:${code}`,
       JSON.stringify({
         name: name.trim() || `Game ${code}`,
-        maxPlayers,
         startingLives,
-        location: location.trim() || null,
         isHost: true,
       }),
     )
@@ -44,42 +49,32 @@ export default function CreateGame() {
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm text-beer-800 font-semibold">
-          {t('create.maxPlayers')}: {maxPlayers}
-        </span>
-        <input
-          type="range"
-          min={2}
-          max={10}
-          value={maxPlayers}
-          onChange={(e) => setMaxPlayers(Number(e.target.value))}
-          className="accent-beer-600"
-        />
-      </label>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-sm text-beer-800 font-semibold">
-          {t('create.startingLives')}: {startingLives} 🥃
-        </span>
-        <input
-          type="range"
-          min={1}
-          max={5}
-          value={startingLives}
-          onChange={(e) => setStartingLives(Number(e.target.value))}
-          className="accent-beer-600"
-        />
-      </label>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-sm text-beer-800 font-semibold">{t('create.location')}</span>
-        <input
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder={t('create.locationPlaceholder')}
-          maxLength={60}
-          className="px-3 py-2 rounded-lg bg-white ring-1 ring-beer-300 outline-none focus:ring-2 focus:ring-beer-600"
-        />
+        <span className="text-sm text-beer-800 font-semibold">{t('create.startingLives')}</span>
+        <div className="flex items-center gap-3">
+          <span className="flex gap-0.5 text-2xl flex-1 justify-start items-center">
+            {Array.from({ length: startingLives }).map((_, i) => (
+              <span key={i}>🥃</span>
+            ))}
+          </span>
+          <span className="flex items-center gap-2 ml-auto">
+            <button
+              type="button"
+              onClick={() => setStartingLives((v) => Math.max(LIVES_MIN, v - 1))}
+              disabled={startingLives <= LIVES_MIN}
+              className="w-8 h-8 rounded-full bg-beer-600 text-white font-bold text-lg disabled:bg-beer-300 transition"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              onClick={() => setStartingLives((v) => Math.min(LIVES_MAX, v + 1))}
+              disabled={startingLives >= LIVES_MAX}
+              className="w-8 h-8 rounded-full bg-beer-600 text-white font-bold text-lg disabled:bg-beer-300 transition"
+            >
+              +
+            </button>
+          </span>
+        </div>
       </label>
 
       <button

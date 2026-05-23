@@ -56,7 +56,35 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        // Bundle locally-prefetched Noto Lottie JSON + SVGs into the precache.
+        // `json` covers `public/noto/lottie/*.json`; `svg` already covers the
+        // SVG variants. The `.wasm` glob covers the dotLottie WASM runtime.
+        globPatterns: [
+          '**/*.{js,css,html,svg,png,ico,webmanifest,json,wasm}',
+        ],
+        // Per-asset budget bumped because some Noto Lottie JSON payloads are
+        // ~200 KB and the default Workbox limit (2 MiB total) is comfortable
+        // but the per-file warning trips at default ~2 MiB. Stay safe.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            // Long-tail avatar assets fetched on demand from Google's CDN.
+            // StaleWhileRevalidate keeps mobile UX snappy: serve the cached
+            // copy immediately, refresh in the background.
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/s\/e\/notoemoji\//,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'noto-emoji-cdn',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
     }),
   ],

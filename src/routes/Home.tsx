@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import EmojiPicker from '@/components/EmojiPicker'
+import NotoEmoji from '@/components/NotoEmoji'
 import { useProfileStore } from '@/store/profile'
 import { EMOJIS } from '@/assets/emojis'
 
@@ -43,10 +44,23 @@ export default function Home() {
   }
 
   return (
-    <div className="w-full max-w-md flex flex-col items-center gap-6 mt-8">
-      <header className="text-center">
-        <h1 className="text-5xl font-bold text-beer-800">🥃 {t('app.title')}</h1>
-      </header>
+    // Vertical centering: we can't rely on `<main>`'s flex layout because it
+    // also hosts other routes that anchor to the top (Dashboard, Lobby, etc.)
+    // via their own `mt-N`. So Home owns its own full-viewport centering by
+    // becoming a fixed-position overlay sized to the viewport, ignoring
+    // `<main>`'s padding. The LanguageToggle flag is also `fixed` (in App.tsx)
+    // and rendered AFTER us in the tree, so it stays clickable on top.
+    //
+    // `pointer-events-none`/`auto` toggle: the outer fixed container must
+    // pass clicks through to the BeerBubbles layer behind it where it has
+    // no content (it doesn't, since we fill it), but we do need its inner
+    // children to receive clicks. Setting `pointer-events-auto` on the inner
+    // column is enough since the outer fixed div is fully covered by it.
+    <div className="fixed inset-0 z-10 flex flex-col items-center justify-center px-4 py-6 pointer-events-none overflow-auto">
+      <div className="w-full max-w-md flex flex-col items-center gap-6 pointer-events-auto">
+        <header className="text-center">
+          <h1 className="text-5xl font-bold text-beer-800">🥃 {t('app.title')}</h1>
+        </header>
 
       <div className="w-full flex items-center gap-2">
         <button
@@ -54,7 +68,7 @@ export default function Home() {
           onClick={() => setPickerOpen((p) => !p)}
           className="text-3xl w-14 h-14 flex items-center justify-center rounded-xl bg-white/90 ring-1 ring-beer-300 hover:ring-2 hover:ring-beer-600 transition shrink-0"
         >
-          {emoji ?? '?'}
+          {emoji ? <NotoEmoji emoji={emoji} size={40} animated /> : '?'}
         </button>
         <input
           type="text"
@@ -79,6 +93,7 @@ export default function Home() {
       >
         {t('home.play')}
       </button>
+      </div>
     </div>
   )
 }

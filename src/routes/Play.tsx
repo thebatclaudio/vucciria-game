@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from '@/components/Card'
-import PlayerCircle from '@/components/PlayerCircle'
-import type { PickerMode } from '@/components/PlayerCircle'
+import NotoEmoji from '@/components/NotoEmoji'
 import { useGameRoom, useGameMeta, usePlayers } from '@/net/hooks'
 import { getMeta, getDeck, getPlayers } from '@/net/ydoc'
 import { drawNext } from '@/game/deck'
@@ -11,6 +10,8 @@ import { orderedPlayers, alivePlayers, nextTurnSeat, checkWinner } from '@/game/
 import { getOrCreatePlayerId } from '@/game/identity'
 import { applyCardEffect, initialPhaseFor } from '@/game/effects'
 import { getCard } from '@/game/cards'
+
+type PickerMode = 'none' | 'single' | 'multi'
 
 export default function Play() {
   const { t } = useTranslation()
@@ -43,18 +44,9 @@ export default function Play() {
     setPickSelection([])
   }, [meta?.lastCardId, meta?.cardPhase])
 
-  // Watch for game over.
-  useEffect(() => {
-    if (!binding || meta?.status !== 'playing') return
-    const winner = checkWinner(players)
-    if (winner) {
-      binding.doc.transact(() => {
-        getMeta(binding.doc).set('status', 'over')
-        getMeta(binding.doc).set('winnerPeerId', winner.peerId)
-      })
-    }
-  }, [binding, players, meta?.status])
-
+  // Navigate to game-over when the status flips — triggered by endTurn now,
+  // not by an auto-effect, so the player sees the drawn card before the
+  // game ends.
   useEffect(() => {
     if (meta?.status === 'over' && code) nav(`/over/${code}`)
   }, [meta?.status, code, nav])
@@ -171,13 +163,19 @@ export default function Play() {
   const endTurn = () => {
     if (!binding || !isMyTurn) return
     if (phase !== 'resolved') return
+    const winner = checkWinner(players)
     binding.doc.transact(() => {
       const m = getMeta(binding.doc)
-      const next = nextTurnSeat(players, meta?.turnSeat ?? 0)
-      m.set('turnSeat', next)
-      m.set('lastCardId', null)
-      m.set('cardPhase', 'awaiting-draw')
-      m.set('pendingChosenIds', [])
+      if (winner) {
+        m.set('status', 'over')
+        m.set('winnerPeerId', winner.peerId)
+      } else {
+        const next = nextTurnSeat(players, meta?.turnSeat ?? 0)
+        m.set('turnSeat', next)
+        m.set('lastCardId', null)
+        m.set('cardPhase', 'awaiting-draw')
+        m.set('pendingChosenIds', [])
+      }
     })
   }
 
@@ -304,26 +302,6 @@ export default function Play() {
 
   return (
     <div className="w-full max-w-md flex flex-col items-center gap-4 mt-4">
-      <PlayerCircle
-        players={ordered}
-        currentSeat={meta.turnSeat ?? 0}
-        hostPeerId={meta.hostPeerId ?? ''}
-        selfPeerId={playerId ?? ''}
-        startingLives={meta.startingLives ?? 3}
-        showingCard={phase !== 'awaiting-draw'}
-        jollyHolderId={meta.jollyHolderId ?? null}
-        picker={
-          pickerMode === 'none'
-            ? undefined
-            : {
-                mode: pickerMode,
-                candidateIds: pickerCandidates,
-                selectedIds: pickSelection,
-                onToggle: onTogglePick,
-              }
-        }
-      />
-
       <div className="text-center">
         <p className="text-beer-800 font-semibold text-lg">{getStatusMessage()}</p>
       </div>
@@ -369,6 +347,67 @@ export default function Play() {
           )}
       </div>
 
+      {/* Player list (bottom of play area) */}
+      <ul className="w-full flex flex-col gap-2">
+        {ordered.map((p) => {
+          const isCurrent = p.seat === meta.turnSeat
+          const isSelf = p.peerId === playerId
+          const isHostPlayer = p.peerId === meta.hostPeerId
+          const isDead = p.lives <= 0
+          const isSelected = pickSelection.includes(p.peerId)
+          const selectable =
+            pickerMode !== 'none' && !isDead &&
+            (!pickerCandidates || pickerCandidates.includes(p.peerId))
+
+          return (
+            <li
+              key={p.peerId}
+              onClick={selectable ? () => onTogglePick(p.peerId) : undefined}
+              role={selectable ? 'button' : undefined}
+              tabIndex={selectable ? 0 : undefined}
+              onKeyDown={
+                selectable
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onTogglePick(p.peerId)
+                      }
+                    }
+                  : undefined
+              }
+              className={`flex items-center justify-between bg-white/80 rounded-lg px-3 py-2 transition
+                ${isCurrent ? 'ring-2 ring-beer-600 bg-beer-50' : ''}
+                ${isSelected ? 'ring-2 ring-green-500' : ''}
+                ${isDead ? 'opacity-50' : ''}
+                ${selectable ? 'cursor-pointer hover:bg-beer-100' : ''}`}
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <NotoEmoji emoji={p.emoji} size={28} animated={isCurrent} />
+                <span className="font-semibold truncate">
+                  {isHostPlayer && <span className="mr-1">👑</span>}
+                  {p.nickname}
+                </span>
+                {isSelf && <span className="text-xs text-beer-600 shrink-0">({t('lobby.you')})</span>}
+                {isCurrent && phase !== 'awaiting-draw' && (
+                  <span className="text-sm shrink-0" title="Showing card">🎴</span>
+                )}
+                {isSelected && (
+                  <span className="text-sm shrink-0" title="Selected">✅</span>
+                )}
+              </span>
+              <span className="flex gap-0.5 text-base shrink-0 ml-2 items-center">
+                {Array.from({ length: p.lives }).map((_, i) => (
+                  <span key={i}>🥃</span>
+                ))}
+                {p.peerId === meta?.jollyHolderId && (
+                  <span className="ml-1" title="Jolly token">🃏</span>
+                )}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+
       {isHost && (
         <details className="w-full bg-white/80 rounded-xl p-3 mt-4">
           <summary className="font-semibold text-beer-800 cursor-pointer">
@@ -380,8 +419,9 @@ export default function Play() {
           <ul className="mt-2 flex flex-col gap-2">
             {ordered.map((p) => (
               <li key={p.peerId} className="flex items-center justify-between text-sm">
-                <span>
-                  {p.emoji} {p.nickname}
+                <span className="flex items-center gap-1">
+                  <NotoEmoji emoji={p.emoji} size={20} />
+                  <span>{p.nickname}</span>
                 </span>
                 <span className="flex gap-1">
                   <button

@@ -106,7 +106,6 @@ export type CardPhase =
 export interface GameMeta {
   code: string
   name: string
-  maxPlayers: number
   startingLives: number
   location: string | null
   hostPeerId: string

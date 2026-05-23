@@ -7,7 +7,6 @@
     "nicknamePlaceholder": "Your nickname",
     "nicknameTooShort": "At least 2 characters",
     "pickEmoji": "Pick an avatar",
-    "shuffle": "Shuffle",
     "play": "Play"
   },
   "dashboard": {
@@ -20,7 +19,6 @@
     "title": "Create a game",
     "name": "Game name",
     "namePlaceholder": "Friday night",
-    "maxPlayers": "Max players",
     "startingLives": "Starting lives",
     "location": "Location (optional)",
     "locationPlaceholder": "My place",
@@ -40,9 +38,8 @@
     "share": "Share",
     "copy": "Copy",
     "copied": "Copied!",
-    "players": "Players ({{count}}/{{max}})",
+    "players": "Players ({{count}})",
     "you": "(you)",
-    "host": "host",
     "kick": "Kick",
     "leave": "Leave",
     "start": "Start game",
