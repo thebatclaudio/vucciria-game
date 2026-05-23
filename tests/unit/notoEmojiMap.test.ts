@@ -14,9 +14,14 @@ describe('unicodeToCodepoint', () => {
     expect(unicodeToCodepoint('🤖')).toBe('1f916')
   })
 
-  it('preserves variation selectors (FE0F) joined with -', () => {
-    expect(unicodeToCodepoint('☀️')).toBe('2600-fe0f')
-    expect(unicodeToCodepoint('⚔️')).toBe('2694-fe0f')
+  it('strips a trailing FE0F for "base + variation selector" emojis', () => {
+    // Noto's CDN serves these under the bare base codepoint (the
+    // trailing variation selector is dropped from the URL slug), so
+    // we canonicalise to that shape to match the CDN path and the
+    // locally bundled filename in `public/noto/`.
+    expect(unicodeToCodepoint('☀️')).toBe('2600')
+    expect(unicodeToCodepoint('⚔️')).toBe('2694')
+    expect(unicodeToCodepoint('🕹️')).toBe('1f579')
   })
 
   it('encodes keycap sequences (digit + FE0F + 20E3)', () => {

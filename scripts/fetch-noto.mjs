@@ -1,12 +1,24 @@
 #!/usr/bin/env node
 /**
- * Download the top-N most-likely-picked avatar emoji assets from Google's
- * Noto animated emoji CDN into `public/noto/` so they're bundled with the
- * PWA and available offline.
+ * Download Noto animated emoji assets from Google's CDN into `public/noto/`
+ * so they're bundled with the PWA and available offline.
  *
- * For each emoji we fetch:
- *   - `lottie.json`  → `public/noto/lottie/{cp}.json`   (if not in NO_LOTTIE)
- *   - `emoji.svg`    → `public/noto/svg/{cp}.svg`       (always)
+ * Strategy is asymmetric by asset type:
+ *   - `emoji.svg`    → fetched for EVERY emoji in the catalog. Static SVGs
+ *                      are small (~3-8 KB) and the runtime fallback chain
+ *                      depends on the static SVG always being available
+ *                      offline. Bundling all of them is the only way to
+ *                      guarantee the installed PWA never shows a "white
+ *                      box" avatar when the CDN is unreachable (airplane
+ *                      mode, captive portal, blocked third-party origin,
+ *                      first launch before the runtime cache has warmed).
+ *   - `lottie.json`  → fetched only for the top N most-likely-picked
+ *                      avatars (TOP_N_LOTTIE). Lotties are large (often
+ *                      100-300 KB each), so we accept that animated
+ *                      rendering for the long tail requires connectivity;
+ *                      <NotoEmoji> falls back gracefully to the (now
+ *                      always-local) static SVG when a Lottie isn't
+ *                      available.
  *
  * Then rewrites `src/assets/notoManifest.ts` listing what's locally
  * available, so the runtime `<NotoEmoji>` can pick local URLs over CDN.
@@ -27,10 +39,22 @@ const LOTTIE_DIR = path.join(PUBLIC_DIR, 'lottie')
 const SVG_DIR = path.join(PUBLIC_DIR, 'svg')
 const MANIFEST_TS = path.join(root, 'src', 'assets', 'notoManifest.ts')
 
-const TOP_N = 20
+/**
+ * Cap for animated Lottie bundling. Static SVGs are always bundled for
+ * every emoji in the catalog regardless of this value.
+ */
+const TOP_N_LOTTIE = 20
 
+/**
+ * Mirror of `src/assets/notoEmojiMap.ts::unicodeToCodepoint`. Keep in
+ * sync — both produce the canonical Noto slug, including stripping a
+ * trailing `-fe0f` for plain "base + variation selector" emojis (which
+ * Noto's CDN serves under the bare base codepoint).
+ */
 function unicodeToCodepoint(emoji) {
-  return [...emoji].map((ch) => ch.codePointAt(0).toString(16)).join('-')
+  const parts = [...emoji].map((ch) => ch.codePointAt(0).toString(16))
+  if (parts.length === 2 && parts[1] === 'fe0f') return parts[0]
+  return parts.join('-')
 }
 
 /** Read the NO_LOTTIE set + EMOJIS list from source so we stay in sync. */
@@ -95,25 +119,28 @@ async function main() {
   await mkdir(SVG_DIR, { recursive: true })
 
   const { ordered, noLottie } = await loadEmojis()
-  const top = ordered.slice(0, TOP_N)
   console.log(
-    `Prefetching top ${top.length} Noto assets → public/noto/ …\n`,
+    `Prefetching Noto assets → public/noto/ ` +
+      `(${ordered.length} SVGs, first ${TOP_N_LOTTIE} also Lottie) …\n`,
   )
 
   const localLottie = []
   const localSvg = []
 
-  for (const e of top) {
+  for (let i = 0; i < ordered.length; i++) {
+    const e = ordered[i]
     const cp = unicodeToCodepoint(e)
-    // SVG always.
+    // Static SVG: always fetched for every emoji so the offline fallback
+    // chain in <NotoEmoji> can always resolve to a local asset.
     const svgResult = await downloadOne(
       `${NOTO_BASE}/${cp}/emoji.svg`,
       path.join(SVG_DIR, `${cp}.svg`),
     )
     if (svgResult === 'ok' || svgResult === 'skip') localSvg.push(cp)
-    // Lottie if known to exist.
-    let lottieResult = 'no-lottie'
-    if (!noLottie.has(e)) {
+    // Lottie only for the top N likely-picked avatars, and only if Noto
+    // is known to ship one for this emoji.
+    let lottieResult = i < TOP_N_LOTTIE && !noLottie.has(e) ? null : 'skip-tier'
+    if (lottieResult === null) {
       lottieResult = await downloadOne(
         `${NOTO_BASE}/${cp}/lottie.json`,
         path.join(LOTTIE_DIR, `${cp}.json`),

@@ -19,13 +19,26 @@
  * Convert a unicode emoji glyph to its Noto codepoint slug.
  *
  * Uses string iteration (not `.charCodeAt`) so surrogate pairs collapse into
- * the single astral code point Noto expects. ZWJ (`200d`) and variation
- * selector (`fe0f`) sequences are preserved and joined with `-`.
+ * the single astral code point Noto expects. ZWJ (`200d`) and mid-sequence
+ * variation selectors (`fe0f`) are preserved and joined with `-`.
+ *
+ * Noto's CDN URL convention drops a TRAILING `-fe0f` for simple
+ * "base + variation selector" emojis like `☀️` (`2600-fe0f` → `2600`),
+ * `🌧️` (`1f327-fe0f` → `1f327`), `🕹️`, `🖌️`, `🌤️`. We canonicalise
+ * to that shape here so the slug matches the real CDN path and the
+ * locally bundled filename in `public/noto/`.
+ *
+ * Mid-sequence `fe0f` inside a longer ZWJ sequence (e.g. emoji-modifier
+ * sequences) is left intact because Noto keeps it there.
  */
 export function unicodeToCodepoint(emoji: string): string {
-  return [...emoji]
-    .map((ch) => ch.codePointAt(0)!.toString(16))
-    .join('-')
+  const parts = [...emoji].map((ch) => ch.codePointAt(0)!.toString(16))
+  // Drop trailing fe0f only when the sequence is exactly "base + fe0f".
+  // Anything longer (ZWJ sequences, modifier sequences) keeps fe0f intact.
+  if (parts.length === 2 && parts[1] === 'fe0f') {
+    return parts[0]
+  }
+  return parts.join('-')
 }
 
 /**
