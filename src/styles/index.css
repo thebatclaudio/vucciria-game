@@ -16,6 +16,7 @@ body,
 
 body {
   background: linear-gradient(180deg, #fffbeb 0%, #fde68a 100%);
+  background-attachment: fixed;
   color: #422006;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
