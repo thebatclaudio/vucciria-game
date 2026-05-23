@@ -21,11 +21,15 @@ by hand.
 After editing `source.svg`, run from the repo root:
 
 ```bash
-npx @vite-pwa/assets-generator --preset minimal public/manifest-icons/source.svg
+pnpm exec pwa-assets-generator
 ```
 
-The generator writes outputs next to the source file. Commit all updated
-PNGs alongside the SVG change.
+The generator reads `pwa-assets.config.ts` at the repo root, which
+extends the `minimal` preset with `padding: 0` and an amber
+(`#f59e0b`) background fill on every variant. This is what eliminates
+the white border / transparent halo that the stock preset produces.
+Outputs land next to `source.svg`. Commit all updated PNGs alongside
+the SVG change.
 
 ## Editing the source artwork
 
