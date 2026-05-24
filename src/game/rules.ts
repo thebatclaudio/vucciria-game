@@ -28,10 +28,33 @@ export function nextTurnSeat(players: Player[], currentSeat: number): number {
   return -1
 }
 
-/** Did the game end? Returns the winner or null. */
-export function checkWinner(players: Player[]): Player | null {
+/**
+ * Did the game end? Returns the winner or null.
+ *
+ * A winner is declared when exactly one player is still alive AND the game
+ * was started with more than one player. The starting count is passed
+ * explicitly so that players leaving or being kicked mid-game can't shrink
+ * the total below the alive count and thereby suppress the win condition
+ * (see https://github.com/.../issues — the v1 bug where the sole survivor
+ * was stuck forever because `players.length === alive.length === 1`).
+ *
+ * Fallback: if `startingPlayerCount` is 0 (unknown — e.g. doc created
+ * before this field existed), use a heuristic: declare a winner if at
+ * least one player has already died (lives <= 0) OR the players array
+ * itself is larger than 1.
+ */
+export function checkWinner(
+  players: Player[],
+  startingPlayerCount = 0,
+): Player | null {
   const alive = alivePlayers(players)
-  if (alive.length === 1 && players.length > 1) return alive[0]
+  if (alive.length !== 1) return null
+  if (startingPlayerCount > 1) return alive[0]
+  if (startingPlayerCount === 0) {
+    // Best-effort fallback for legacy/rehydrated docs.
+    const someoneDied = players.some((p) => p.lives <= 0)
+    if (someoneDied || players.length > 1) return alive[0]
+  }
   return null
 }
 

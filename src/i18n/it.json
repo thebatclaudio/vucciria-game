@@ -75,9 +75,38 @@
       "hostPickDuelLoser": "Scegli chi ha perso la sfida",
       "waitingDrawerPick": "⏳ {{name}} sta scegliendo un giocatore",
       "waitingDuelPick": "⏳ {{name}} sta scegliendo l'avversario",
-      "waitingHostPick": "⏳ In attesa della decisione dell'host",
-      "resolvedYou": "Effetto applicato — chiudi il turno",
-      "resolvedOther": "{{name}} può chiudere il turno"
+      "waitingHostPick": "⏳ In attesa della decisione dell'host"
+    },
+    "dialog": {
+      "title": {
+        "drawerPick": "Scegli un giocatore",
+        "duelOpponent": "Scegli il tuo avversario",
+        "hostPickLoser": "Scegli chi ha perso",
+        "hostPickLosers": "Tocca tutti quelli che hanno perso",
+        "hostPickDuelLoser": "Scegli chi ha perso la sfida"
+      },
+      "confirm": "Conferma",
+      "selectCount_one": "{{count}} selezionato",
+      "selectCount_other": "{{count}} selezionati"
+    },
+    "card": {
+      "cta": {
+        "pick": "👉 Tocca la carta o scegli un giocatore",
+        "endTurn": "👉 Tocca la carta per chiudere il turno",
+        "activate": "Attiva carta"
+      }
+    },
+    "summary": {
+      "drinkOne": "🥃 {{name}} ha bevuto",
+      "drinkBoth": "🥃 {{a}} e {{b}} hanno bevuto entrambi",
+      "allDrink": "🍻 Bevono tutti!",
+      "multipleDrink": "🥃 {{names}} hanno bevuto",
+      "noOne": "🙅 Nessuno ha perso un bicchierino",
+      "selfDoubleDrink": "🥃🥃 {{name}} ha bevuto due volte",
+      "jollyGranted": "🃏 {{name}} ha preso il Jolly",
+      "freePass": "🚽 {{name}} ha il pass libero",
+      "manualMove": "🕺 Fai la mossa — pensa il tavolo a fare il resto",
+      "nothingHappened": "Carta risolta"
     }
   },
   "over": {

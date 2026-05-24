@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import EmojiPicker from '@/components/EmojiPicker'
 import NotoEmoji from '@/components/NotoEmoji'
 import { useProfileStore } from '@/store/profile'
-import { EMOJIS } from '@/assets/emojis'
+import { DEFAULT_EMOJIS } from '@/assets/emojis'
 
 const DRINK_USERNAMES = [
   'CaptainMojito', 'SirGuzzler', 'BoozeHound', 'TheLastSpritz',
@@ -31,7 +31,12 @@ export default function Home() {
 
   useEffect(() => {
     if (!existing) {
-      setEmoji(EMOJIS[Math.floor(Math.random() * EMOJIS.length)])
+      // Random default uses only faces/animals/creatures so first-time
+      // players land on an identity-shaped avatar. The manual picker
+      // (EmojiPicker) still exposes the full catalog.
+      setEmoji(
+        DEFAULT_EMOJIS[Math.floor(Math.random() * DEFAULT_EMOJIS.length)],
+      )
       setNickname(DRINK_USERNAMES[Math.floor(Math.random() * DRINK_USERNAMES.length)])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

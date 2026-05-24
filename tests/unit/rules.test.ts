@@ -46,13 +46,37 @@ describe('rules', () => {
     expect(nextTurnSeat([mk(0, 0), mk(1, 0)], 0)).toBe(-1)
   })
 
-  it('checkWinner returns sole survivor', () => {
+  it('checkWinner returns sole survivor (3 starting, 1 dead, 1 left)', () => {
+    // Heuristic path: no startingPlayerCount provided, but at least one
+    // player has died → declare the sole survivor.
     const w = checkWinner([mk(0, 0), mk(1, 2), mk(2, 0)])
     expect(w?.seat).toBe(1)
   })
 
   it('checkWinner returns null when >1 alive', () => {
     expect(checkWinner([mk(0, 1), mk(1, 1)])).toBeNull()
+  })
+
+  it('checkWinner with startingPlayerCount declares winner when losers left', () => {
+    // 3-player game started. Two players left the room (so their entries
+    // are gone). Only the sole survivor remains. Without startingPlayerCount,
+    // checkWinner would see alive.length === 1 && players.length === 1 and
+    // fail the legacy `players.length > 1` guard. With startingPlayerCount,
+    // the win still fires.
+    const remaining = [mk(0, 2)]
+    expect(checkWinner(remaining, 3)?.seat).toBe(0)
+  })
+
+  it('checkWinner returns null in a 1-player game', () => {
+    // startingPlayerCount === 1 (solo lobby): never declare a winner.
+    const players = [mk(0, 2)]
+    expect(checkWinner(players, 1)).toBeNull()
+  })
+
+  it('checkWinner unknown startingCount + no deaths + 1 player → null', () => {
+    // Defensive: legacy doc with one entry and no deaths → still null.
+    const players = [mk(0, 2)]
+    expect(checkWinner(players)).toBeNull()
   })
 
   it('aliveNeighbors returns left and right alive peers', () => {

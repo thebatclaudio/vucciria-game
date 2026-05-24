@@ -133,4 +133,15 @@ export interface GameMeta {
    * decrementing `lives`. Cleared when the holder leaves or is kicked.
    */
   jollyHolderId: string | null
+  /**
+   * Number of players that were in the room at the moment the game
+   * transitioned from `lobby` → `playing`. Captured so `checkWinner` can
+   * declare a sole survivor even if other players have left/been kicked
+   * (which removes their entry from the players map and would otherwise
+   * make the alive count == total count, preventing a win).
+   *
+   * 0 means "unknown" (e.g. doc rehydrated from before this field existed)
+   * and callers should fall back to a safe heuristic.
+   */
+  startingPlayerCount: number
 }

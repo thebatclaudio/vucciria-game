@@ -75,9 +75,38 @@
       "hostPickDuelLoser": "Pick the duel loser",
       "waitingDrawerPick": "⏳ {{name}} is picking a player",
       "waitingDuelPick": "⏳ {{name}} is choosing an opponent",
-      "waitingHostPick": "⏳ Waiting for the host's decision",
-      "resolvedYou": "Effect applied — end your turn",
-      "resolvedOther": "{{name}} can end their turn"
+      "waitingHostPick": "⏳ Waiting for the host's decision"
+    },
+    "dialog": {
+      "title": {
+        "drawerPick": "Pick a player",
+        "duelOpponent": "Pick your opponent",
+        "hostPickLoser": "Pick who lost",
+        "hostPickLosers": "Tap everyone who lost",
+        "hostPickDuelLoser": "Pick the duel loser"
+      },
+      "confirm": "Confirm",
+      "selectCount_one": "{{count}} selected",
+      "selectCount_other": "{{count}} selected"
+    },
+    "card": {
+      "cta": {
+        "pick": "👉 Tap the card or pick a player",
+        "endTurn": "👉 Tap the card to end your turn",
+        "activate": "Activate card"
+      }
+    },
+    "summary": {
+      "drinkOne": "🥃 {{name}} drank",
+      "drinkBoth": "🥃 {{a}} and {{b}} both drank",
+      "allDrink": "🍻 Everyone drank!",
+      "multipleDrink": "🥃 {{names}} drank",
+      "noOne": "🙅 No one lost a shot",
+      "selfDoubleDrink": "🥃🥃 {{name}} drank twice",
+      "jollyGranted": "🃏 {{name}} got the Jolly",
+      "freePass": "🚽 {{name}} got a free pass",
+      "manualMove": "🕺 Play the move — table polices itself",
+      "nothingHappened": "Card resolved"
     }
   },
   "over": {

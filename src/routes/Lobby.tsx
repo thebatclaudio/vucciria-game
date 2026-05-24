@@ -236,8 +236,14 @@ export default function Lobby() {
 
   const start = () => {
     if (!binding || ordered.length < 2) return
-    getMeta(binding.doc).set('status', 'playing')
-    getMeta(binding.doc).set('turnSeat', ordered[0].seat)
+    binding.doc.transact(() => {
+      const m = getMeta(binding.doc)
+      m.set('status', 'playing')
+      m.set('turnSeat', ordered[0].seat)
+      // Snapshot the player count so the end-of-game check still works
+      // after players have left or been kicked mid-game.
+      m.set('startingPlayerCount', ordered.length)
+    })
   }
 
   const leave = () => {

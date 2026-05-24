@@ -54,6 +54,8 @@ export function readMeta(doc: Y.Doc): Partial<GameMeta> {
     pendingChosenIds:
       (m.get('pendingChosenIds') as string[] | undefined) ?? [],
     jollyHolderId: (m.get('jollyHolderId') as string | null) ?? null,
+    startingPlayerCount:
+      (m.get('startingPlayerCount') as number | undefined) ?? 0,
   }
 }
 
