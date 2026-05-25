@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import QRCode from 'qrcode'
 import ModalShell from '@/components/ui/ModalShell'
 import {
   SecondaryButton,
@@ -64,8 +63,12 @@ export default function ShareSheet({ open, code, gameName, onClose }: Props) {
     typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   // Generate (and re-generate when the code changes) the QR image. We
-  // render it as a data URL on a <img> so the canvas stays out of the
+  // render it as a data URL on an <img> so the canvas stays out of the
   // React tree; that means screen-readers can also pick up the alt text.
+  //
+  // `qrcode` is dynamically imported so the ~30 KB minified library
+  // (`qrcode-vendor` chunk) only lands on the wire when the user
+  // actually opens the share sheet. Lobby first paint stays lean.
   useEffect(() => {
     if (!open) {
       setQrDataUrl(null)
@@ -73,20 +76,23 @@ export default function ShareSheet({ open, code, gameName, onClose }: Props) {
     }
     let cancelled = false
     const url = buildShareUrl(code)
-    QRCode.toDataURL(url, {
-      // High-contrast on the white dialog background.
-      color: { dark: '#3E2723', light: '#FFFFFF' },
-      margin: 1,
-      width: 256,
-      // Default M is enough; we don't expect heavy graphic overlay on it.
-      errorCorrectionLevel: 'M',
-    })
+    import('qrcode')
+      .then(({ default: QRCode }) =>
+        QRCode.toDataURL(url, {
+          // High-contrast on the white dialog background.
+          color: { dark: '#3E2723', light: '#FFFFFF' },
+          margin: 1,
+          width: 256,
+          // Default M is enough; we don't expect heavy graphic overlay on it.
+          errorCorrectionLevel: 'M',
+        }),
+      )
       .then((dataUrl) => {
         if (!cancelled) setQrDataUrl(dataUrl)
       })
       .catch(() => {
-        // QR generation failure is recoverable — the code itself is still
-        // visible above. Don't block the dialog.
+        // QR generation failure (or chunk load failure) is recoverable —
+        // the code itself is still visible above. Don't block the dialog.
         if (!cancelled) setQrDataUrl(null)
       })
     return () => {
