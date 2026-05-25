@@ -1,5 +1,12 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom'
+import {
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useParams,
+  useLocation,
+} from 'react-router-dom'
 import BeerBubbles from './components/BeerBubbles'
 import BuildVersionTag from './components/BuildVersionTag'
 import LanguageToggle from './components/LanguageToggle'
@@ -35,7 +42,13 @@ const GameOver = lazy(() => import('./routes/GameOver'))
 
 function RequireProfile({ children }: { children: React.ReactNode }) {
   const profile = useProfileStore((s) => s.profile)
-  if (!profile) return <Navigate to="/" replace />
+  // Preserve the intended destination so deep-links (e.g. a scanned QR
+  // pointing at `/lobby/ABC123`) survive the profile gate. Home reads
+  // `location.state.from` and navigates there after the user completes
+  // their nickname/emoji instead of dumping them on `/dashboard`.
+  const location = useLocation()
+  if (!profile)
+    return <Navigate to="/" replace state={{ from: location }} />
   return <>{children}</>
 }
 

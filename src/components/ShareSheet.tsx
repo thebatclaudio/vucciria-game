@@ -47,12 +47,21 @@ type Props = {
  * Build the deep-link the QR code encodes. Uses the configured Vite
  * `base` so the URL matches whatever deployment we're on (production
  * `/vucciria-game-v2.0/`, local dev `/`, etc.).
+ *
+ * The app mounts a `BrowserRouter` (see `main.tsx`), so the URL has to
+ * use a *real* pathname — not a `#/lobby/...` hash. An earlier revision
+ * shipped a hash URL here; when scanned, the browser silently dropped
+ * the hash on the floor and the app booted at `/`, which sent the
+ * scanner through the profile gate to the dashboard rather than into
+ * the lobby. The pathname form below routes correctly under
+ * BrowserRouter and survives the deep-link → profile-gate round-trip
+ * (see RequireProfile + Home for the gate handling).
  */
 function buildShareUrl(code: string): string {
   if (typeof window === 'undefined') return ''
   const origin = window.location.origin
   const base = import.meta.env.BASE_URL.replace(/\/$/, '')
-  return `${origin}${base}/#/lobby/${code}`
+  return `${origin}${base}/lobby/${code}`
 }
 
 export default function ShareSheet({ open, code, gameName, onClose }: Props) {

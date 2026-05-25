@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, type Location } from 'react-router-dom'
 import EmojiPicker from '@/components/EmojiPicker'
 import NotoEmoji from '@/components/NotoEmoji'
 import { PrimaryButton } from '@/components/ui/Button'
@@ -22,15 +22,36 @@ function pickRandomNickname(): string {
   return DRINK_USERNAMES[Math.floor(Math.random() * DRINK_USERNAMES.length)]
 }
 
+/**
+ * Build the post-profile destination from a `Location` previously
+ * captured by `RequireProfile`. We rebuild the string instead of passing
+ * the `Location` object straight to `navigate()` because we want to
+ * preserve `search` + `hash` exactly. Falls back to `/dashboard` if the
+ * recorded location is `/` (which would otherwise loop right back here).
+ */
+function destinationFromState(from: Location | undefined): string {
+  if (!from) return '/dashboard'
+  if (!from.pathname || from.pathname === '/') return '/dashboard'
+  return `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
+}
+
 export default function Home() {
   const { t } = useTranslation()
   const nav = useNavigate()
+  const location = useLocation()
   const existing = useProfileStore((s) => s.profile)
   const setProfile = useProfileStore((s) => s.setProfile)
 
   const [nickname, setNickname] = useState(existing?.nickname ?? '')
   const [emoji, setEmoji] = useState<string | null>(existing?.emoji ?? null)
   const [pickerOpen, setPickerOpen] = useState(false)
+
+  // `RequireProfile` stashes the originally requested location here so
+  // deep-links (e.g. `/lobby/ABC123` from a scanned QR) survive the
+  // profile gate. `as Location | undefined` because router state is
+  // untyped at the type-system level.
+  const from = (location.state as { from?: Location } | null)?.from
+  const nextDestination = destinationFromState(from)
 
   const canPlay = nickname.trim().length >= 2 && emoji !== null
 
@@ -50,7 +71,11 @@ export default function Home() {
   const submit = () => {
     if (!canPlay || !emoji) return
     setProfile({ nickname: nickname.trim(), emoji })
-    nav('/dashboard')
+    // Honour the deep-link destination if RequireProfile sent us here
+    // with one (e.g. a freshly scanned QR pointing at `/lobby/:code`).
+    // `replace: true` keeps the Home screen out of the back stack so
+    // the player can't accidentally back-button into it from the lobby.
+    nav(nextDestination, { replace: true })
   }
 
   // Phase 2.6: the EmojiPicker is now a dialog (ModalShell), so the old
