@@ -57,18 +57,21 @@ export default function CreateGame() {
         <span className="text-xs text-ink-soft font-semibold uppercase tracking-button">
           {t('create.startingLives')}
         </span>
-        <div className="flex items-center justify-between gap-3 bg-white rounded-surface px-4 py-3 ring-1 ring-ink/10 shadow-elev-1">
-          {/* Anchored LifeRow shows the chosen count against the max so the
-              visual stays the same width as the user steps up/down. */}
-          <LifeRow lives={startingLives} max={LIVES_MAX} />
+        <div className="bg-white rounded-surface px-4 py-3 ring-1 ring-ink/10 shadow-elev-1">
+          {/* Layout: [−]  🥃 🥃 🥃 🥃 🥃  [+]
+              The LifeRow is the visible read-out (anchored against `max`
+              so the row keeps its width as the user steps up/down) and
+              sits inside the Stepper between the two circular buttons. */}
           <Stepper
             value={startingLives}
             min={LIVES_MIN}
             max={LIVES_MAX}
             onChange={setStartingLives}
-            label={startingLives === 1 ? 'life' : 'lives'}
+            valueLabel={startingLives === 1 ? 'life' : 'lives'}
             ariaLabel={t('create.startingLives')}
-          />
+          >
+            <LifeRow lives={startingLives} max={LIVES_MAX} />
+          </Stepper>
         </div>
       </div>
 
