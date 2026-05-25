@@ -26,6 +26,36 @@ export default defineConfig({
   // that also support the WebRTC features the app relies on.
   build: {
     target: 'es2022',
+    // Vendor chunking. Without this, Vite/Rollup folds every static
+    // dependency into a single ~520 KB monolith chunk that pushes past
+    // the 500 KB warning and invalidates the whole vendor payload on
+    // every app code change. Splitting by package family gives us:
+    //   • better long-term HTTP caching (a React patch doesn't bust the
+    //     yjs/i18n chunks),
+    //   • smaller first paint when the user lands on `/` or `/dashboard`
+    //     (yjs/qrcode/framer-motion only ship for the game routes that
+    //     actually use them — combined with the React.lazy splits in
+    //     App.tsx).
+    //
+    // Anything not listed here (trystero/* transports, dotlottie-react,
+    // qrcode-when-dynamically-imported) is already auto-chunked by
+    // Rollup at its dynamic-import boundary, so we keep the manual list
+    // tight on purpose.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'i18n-vendor': [
+            'i18next',
+            'i18next-browser-languagedetector',
+            'react-i18next',
+          ],
+          'yjs-vendor': ['yjs', 'y-indexeddb'],
+          'motion-vendor': ['framer-motion'],
+          'qrcode-vendor': ['qrcode'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {
