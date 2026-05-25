@@ -2,23 +2,45 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'node:path'
+import { execSync } from 'node:child_process'
 
 // When deploying to https://<USER>.github.io/<REPO>/, set BASE_PATH=/<REPO>/
 // Locally, leave unset.
 const base = process.env.BASE_PATH ?? '/'
 
+// Resolve the label rendered by <BuildVersionTag /> and logged at boot.
+// Precedence is deliberate:
+//   1. GITHUB_SHA (CI/production) — short commit hash, set by deploy.yml.
+//   2. `git describe` (local) — nearest tag plus drift info, e.g.
+//      "0.5.0", "0.5.0-3-gabc1234", "0.5.0-3-gabc1234-dirty". This keeps the
+//      local footer aligned with the GitHub release tag history automatically,
+//      so versions can't silently drift from package.json again.
+//   3. npm_package_version — for non-git builds (tarball, Docker without .git).
+//   4. 'dev' — final fallback.
+// The leading "v" from `git describe` (e.g. "v0.5.0") is stripped because
+// <BuildVersionTag /> already prefixes "v" when rendering.
+function resolveAppVersion(): string {
+  const sha = process.env.GITHUB_SHA?.slice(0, 7)
+  if (sha) return sha
+
+  try {
+    return execSync('git describe --tags --always --dirty', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim()
+      .replace(/^v/, '')
+  } catch {
+    return process.env.npm_package_version || 'dev'
+  }
+}
+
 export default defineConfig({
   base,
   // Build-time constant exposed to the app for the version footer + logging.
-  // Prefer the short Git SHA injected by the GitHub Actions deploy workflow;
-  // fall back to the npm package version, then a literal 'dev' for local
-  // `pnpm dev` / `pnpm build` runs without a SHA in the environment.
+  // See resolveAppVersion() above for the precedence chain.
   define: {
-    __APP_VERSION__: JSON.stringify(
-      (process.env.GITHUB_SHA && process.env.GITHUB_SHA.slice(0, 7)) ||
-        process.env.npm_package_version ||
-        'dev',
-    ),
+    __APP_VERSION__: JSON.stringify(resolveAppVersion()),
   },
   // Bump build target so top-level await (used in src/net/room.ts to bind the
   // chosen Trystero strategy at module load) survives esbuild transpilation.

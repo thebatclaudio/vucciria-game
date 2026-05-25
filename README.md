@@ -65,6 +65,19 @@ Push to `main` — GitHub Actions builds and deploys to GitHub Pages. The workfl
 
 For a custom domain or root deployment, override `BASE_PATH` in `.github/workflows/deploy.yml`.
 
+## Releasing
+
+The version in `package.json` and the git tag history must stay in lockstep — `pnpm preview` reads from `package.json`, and the footer's `BuildVersionTag` derives its label from `git describe` locally (and from the commit SHA on CI).
+
+To cut a release:
+
+```bash
+pnpm version <patch|minor|major>   # bumps package.json + creates vX.Y.Z tag
+git push --follow-tags             # pushes commit + tag together
+```
+
+The GitHub Actions deploy workflow picks up the new commit on `main` and publishes the short SHA in the footer; the tag (e.g. `v0.5.0`) becomes the label shown locally via `git describe`.
+
 ## Tech notes
 
 - **P2P transport:** [Trystero](https://github.com/dmotz/trystero), MQTT strategy by default. The discovery strategy is configurable at build time via `VITE_TRYSTERO_STRATEGY` (one of `mqtt`, `nostr`, `torrent`) — useful when a given network blocks WebSocket brokers. See `.env.example` for details.
