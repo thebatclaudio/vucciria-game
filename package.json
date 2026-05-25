@@ -1,7 +1,7 @@
 {
   "name": "vucciria-game",
   "private": true,
-  "version": "2.0.0",
+  "version": "0.5.0",
   "type": "module",
   "description": "Multiplayer drinking board game — P2P, no backend, no accounts.",
   "scripts": {
