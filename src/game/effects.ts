@@ -153,6 +153,53 @@ export function applyCardEffect(
 }
 
 /**
+ * Would drawing this card eliminate every currently-alive player at once,
+ * leaving the game with no winner and no way to progress?
+ *
+ * Scope: `auto` cards only. Choice/duel/host-choice cards involve human
+ * judgment, so we don't filter them — the drawer/host owns the outcome.
+ * `manual` cards never mutate lives.
+ *
+ * Used by the draw flow to skip past cards that would otherwise block the
+ * game (e.g. `treAveMaria` with 2 players at 1 life each).
+ *
+ * Honors the Jolly token: if the holder is among the affected, the token
+ * absorbs the negative delta so they survive — which means the card no
+ * longer wipes the table.
+ */
+export function cardWouldEliminateEveryone(
+  players: Player[],
+  drawerId: string,
+  cardId: string,
+  jollyHolderId: string | null,
+): boolean {
+  const card = getCard(cardId)
+  const effect = card.effect
+  if (effect.resolution !== 'auto') return false
+  if (effect.delta >= 0) return false
+
+  const alive = alivePlayers(players)
+  if (alive.length === 0) return false
+
+  const targets = new Set(resolveAutoTargets(players, drawerId, effect))
+  // Every alive player must be a target — otherwise at least one survives.
+  for (const p of alive) {
+    if (!targets.has(p.peerId)) return false
+  }
+
+  // Simulate the lives post-resolution. Jolly absorbs one negative delta
+  // on its holder (lives unchanged); everyone else takes the hit.
+  for (const p of alive) {
+    const isJollyHolder = jollyHolderId !== null && p.peerId === jollyHolderId
+    const postLives = isJollyHolder
+      ? p.lives
+      : Math.max(0, p.lives + effect.delta)
+    if (postLives > 0) return false
+  }
+  return true
+}
+
+/**
  * Compute which phase a freshly-drawn card should enter.
  *
  * `auto` and `manual` resolve immediately (the caller still invokes

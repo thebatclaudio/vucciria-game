@@ -14,8 +14,12 @@ import { getMeta, getDeck, getPlayers } from '@/net/ydoc'
 import { drawNext } from '@/game/deck'
 import { orderedPlayers, alivePlayers, nextTurnSeat, checkWinner } from '@/game/rules'
 import { getOrCreatePlayerId } from '@/game/identity'
-import { applyCardEffect, initialPhaseFor } from '@/game/effects'
-import { getCard } from '@/game/cards'
+import {
+  applyCardEffect,
+  cardWouldEliminateEveryone,
+  initialPhaseFor,
+} from '@/game/effects'
+import { getCard, CARDS } from '@/game/cards'
 import { buildEffectSummary } from '@/game/effectSummary'
 
 export default function Play() {
@@ -149,13 +153,66 @@ export default function Play() {
     if (phase !== 'awaiting-draw') return
     const m = getMeta(binding.doc)
     const deck = getDeck(binding.doc)
-    const currentIndex = (m.get('deckIndex') as number) ?? 0
-    const seed = ((m.get('createdAt') as number) ?? Date.now()) ^ currentIndex
-    const { cardId, nextDeck, nextIndex } = drawNext(
-      deck.toArray(),
-      currentIndex,
-      seed,
-    )
+    const createdAt = (m.get('createdAt') as number) ?? Date.now()
+    const jollyHolderId =
+      (m.get('jollyHolderId') as string | null | undefined) ?? null
+
+    // Skip past any `auto` card that would eliminate every alive player
+    // (e.g. `treAveMaria` at 2P×1L). Burning skipped cards keeps the
+    // deck deterministic across peers: only the drawer iterates locally,
+    // and the final committed deckIndex/lastCardId is what gets synced.
+    //
+    // Iteration cap = CARDS.length to guarantee termination. The deck
+    // always contains benign cards (`pipi`, `jolly`, `beviOoffri`, ...),
+    // so in practice the loop exits within a few steps; the cap exists
+    // purely as a safety net.
+    let workingDeck = deck.toArray()
+    let workingIndex = (m.get('deckIndex') as number) ?? 0
+    let chosenCardId: string | null = null
+    let firstCardId: string | null = null
+    let firstNextDeck: string[] = workingDeck
+    let firstNextIndex = workingIndex
+
+    for (let i = 0; i < CARDS.length; i++) {
+      const seed = createdAt ^ workingIndex
+      const r = drawNext(workingDeck, workingIndex, seed)
+      if (i === 0) {
+        firstCardId = r.cardId
+        firstNextDeck = r.nextDeck
+        firstNextIndex = r.nextIndex
+      }
+      const wouldWipe = cardWouldEliminateEveryone(
+        players,
+        playerId,
+        r.cardId,
+        jollyHolderId,
+      )
+      if (!wouldWipe) {
+        chosenCardId = r.cardId
+        workingDeck = r.nextDeck
+        workingIndex = r.nextIndex
+        break
+      }
+      // Burn this card and keep looking.
+      workingDeck = r.nextDeck
+      workingIndex = r.nextIndex
+    }
+
+    // Fallback: should be unreachable, but if every drawn card was a wipe
+    // we degrade to the original behavior (use the first card) rather
+    // than block the turn.
+    let cardId: string
+    let nextDeck: string[]
+    let nextIndex: number
+    if (chosenCardId !== null) {
+      cardId = chosenCardId
+      nextDeck = workingDeck
+      nextIndex = workingIndex
+    } else {
+      cardId = firstCardId ?? CARDS[0].id
+      nextDeck = firstNextDeck
+      nextIndex = firstNextIndex
+    }
 
     // 1) Commit the draw to CRDT.
     binding.doc.transact(() => {

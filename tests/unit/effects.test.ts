@@ -7,7 +7,12 @@ import {
   makePlayerMap,
   readPlayers,
 } from '@/net/ydoc'
-import { applyCardEffect, initialPhaseFor, resolveAutoTargets } from '@/game/effects'
+import {
+  applyCardEffect,
+  cardWouldEliminateEveryone,
+  initialPhaseFor,
+  resolveAutoTargets,
+} from '@/game/effects'
 import { getCard } from '@/game/cards'
 import type { Player } from '@/game/types'
 
@@ -363,5 +368,141 @@ describe('Player list integrity', () => {
     const players = readPlayers(doc)
     const me = players.find((p) => p.peerId === 'p0')
     expect(me?.lives).toBe(2)
+  })
+})
+
+describe('cardWouldEliminateEveryone', () => {
+  it('treAveMaria with 2 players at 1 life wipes the table', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'treAveMaria', null),
+    ).toBe(true)
+  })
+
+  it('treAveMaria with 2 players at 1 life is safe when jolly is held', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'treAveMaria', 'p1'),
+    ).toBe(false)
+  })
+
+  it('treAveMaria with 2 players at 2 lives is safe', () => {
+    const players = [mkPlayer(0, 2), mkPlayer(1, 2)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'treAveMaria', null),
+    ).toBe(false)
+  })
+
+  it('treAveMaria with 3 players at 1 life wipes (drawer + 2 neighbors = all)', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1), mkPlayer(2, 1)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p1', 'treAveMaria', null),
+    ).toBe(true)
+  })
+
+  it('treAveMaria with 4 players at 1 life is safe (one non-neighbor survives)', () => {
+    const players = [
+      mkPlayer(0, 1),
+      mkPlayer(1, 1),
+      mkPlayer(2, 1),
+      mkPlayer(3, 1),
+    ]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'treAveMaria', null),
+    ).toBe(false)
+  })
+
+  it('bevonoTutti with 3 alive at 1 life wipes the table', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1), mkPlayer(2, 1)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'bevonoTutti', null),
+    ).toBe(true)
+  })
+
+  it('bevonoTutti with jolly held leaves a survivor → safe', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1), mkPlayer(2, 1)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'bevonoTutti', 'p2'),
+    ).toBe(false)
+  })
+
+  it('bevonoTutti ignores already-dead players', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 0), mkPlayer(2, 1)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'bevonoTutti', null),
+    ).toBe(true)
+  })
+
+  it('bevi (drawer only) at 1 life and one alive player wipes', () => {
+    const players = [mkPlayer(0, 1)]
+    expect(cardWouldEliminateEveryone(players, 'p0', 'bevi', null)).toBe(
+      true,
+    )
+  })
+
+  it('bevi with 2 alive players is safe (only drawer dies)', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1)]
+    expect(cardWouldEliminateEveryone(players, 'p0', 'bevi', null)).toBe(
+      false,
+    )
+  })
+
+  it('pipi (delta 0) is never a wipe', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1)]
+    expect(cardWouldEliminateEveryone(players, 'p0', 'pipi', null)).toBe(
+      false,
+    )
+  })
+
+  it('jolly (delta 0, grants token) is never a wipe', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1)]
+    expect(cardWouldEliminateEveryone(players, 'p0', 'jolly', null)).toBe(
+      false,
+    )
+  })
+
+  it('mossa (manual) is never a wipe even when everyone is at 1 life', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1)]
+    expect(cardWouldEliminateEveryone(players, 'p0', 'mossa', null)).toBe(
+      false,
+    )
+  })
+
+  it('out-of-scope: drawer-choice cards are not filtered', () => {
+    // tuEcumpari at 2P × 1L *could* wipe, but per the design we only
+    // filter `auto` cards.
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'tuEcumpari', null),
+    ).toBe(false)
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'beviOoffri', null),
+    ).toBe(false)
+  })
+
+  it('out-of-scope: duel and host-choice cards are not filtered', () => {
+    const players = [mkPlayer(0, 1), mkPlayer(1, 1)]
+    expect(cardWouldEliminateEveryone(players, 'p0', 'sfida', null)).toBe(
+      false,
+    )
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'setteBum', null),
+    ).toBe(false)
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'ventuno', null),
+    ).toBe(false)
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'storia', null),
+    ).toBe(false)
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'zingBoing', null),
+    ).toBe(false)
+  })
+
+  it('empty alive set returns false', () => {
+    const players = [mkPlayer(0, 0), mkPlayer(1, 0)]
+    expect(
+      cardWouldEliminateEveryone(players, 'p0', 'bevonoTutti', null),
+    ).toBe(false)
   })
 })
