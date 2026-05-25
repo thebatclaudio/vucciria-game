@@ -1,18 +1,37 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom'
-import Home from './routes/Home'
-import Dashboard from './routes/Dashboard'
-import CreateGame from './routes/CreateGame'
-
-import Lobby from './routes/Lobby'
-import Play from './routes/Play'
-import GameOver from './routes/GameOver'
 import BeerBubbles from './components/BeerBubbles'
 import BuildVersionTag from './components/BuildVersionTag'
 import LanguageToggle from './components/LanguageToggle'
 import PwaUpdateToast from './components/PwaUpdateToast'
+import RouteFallback from './components/RouteFallback'
 import { ToastProvider } from './components/ui/Toast'
 import { GameRoomProvider } from './net/GameRoomProvider'
 import { useProfileStore } from './store/profile'
+
+/**
+ * Route-level code splitting.
+ *
+ * Each route gets its own chunk via `React.lazy` so the first-paint
+ * bundle only carries the app shell + React/router vendor code. The
+ * game routes (Lobby/Play/GameOver) drag in yjs, y-indexeddb,
+ * framer-motion, and qrcode — none of which a visitor on `/` or
+ * `/dashboard` should ever have to download. The shared `<Suspense>`
+ * boundary below shows `<RouteFallback />` while the chunk arrives.
+ *
+ * Note: `GameRoomProvider` (and therefore the yjs/y-indexeddb/trystero
+ * imports it transitively pulls) is *not* lazy — it lives in App.tsx
+ * directly because it wraps the GameRoomLayout. That's intentional:
+ * the moment a user lands on `/lobby/:code` the provider must be ready
+ * to bind the Y.Doc. We rely on the route chunk arriving in the same
+ * tick as the provider's first render to keep TTI tight.
+ */
+const Home = lazy(() => import('./routes/Home'))
+const Dashboard = lazy(() => import('./routes/Dashboard'))
+const CreateGame = lazy(() => import('./routes/CreateGame'))
+const Lobby = lazy(() => import('./routes/Lobby'))
+const Play = lazy(() => import('./routes/Play'))
+const GameOver = lazy(() => import('./routes/GameOver'))
 
 function RequireProfile({ children }: { children: React.ReactNode }) {
   const profile = useProfileStore((s) => s.profile)
@@ -62,38 +81,40 @@ export default function App() {
             paddingTop: 'max(1.5rem, calc(1.5rem + var(--safe-t)))',
           }}
         >
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route
-              path="/dashboard"
-              element={
-                <RequireProfile>
-                  <Dashboard />
-                </RequireProfile>
-              }
-            />
-            <Route
-              path="/create"
-              element={
-                <RequireProfile>
-                  <CreateGame />
-                </RequireProfile>
-              }
-            />
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <RequireProfile>
+                    <Dashboard />
+                  </RequireProfile>
+                }
+              />
+              <Route
+                path="/create"
+                element={
+                  <RequireProfile>
+                    <CreateGame />
+                  </RequireProfile>
+                }
+              />
 
-            <Route
-              element={
-                <RequireProfile>
-                  <GameRoomLayout />
-                </RequireProfile>
-              }
-            >
-              <Route path="/lobby/:code" element={<Lobby />} />
-              <Route path="/play/:code" element={<Play />} />
-              <Route path="/over/:code" element={<GameOver />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route
+                element={
+                  <RequireProfile>
+                    <GameRoomLayout />
+                  </RequireProfile>
+                }
+              >
+                <Route path="/lobby/:code" element={<Lobby />} />
+                <Route path="/play/:code" element={<Play />} />
+                <Route path="/over/:code" element={<GameOver />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </ToastProvider>
