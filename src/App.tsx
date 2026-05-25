@@ -10,6 +10,7 @@ import BeerBubbles from './components/BeerBubbles'
 import BuildVersionTag from './components/BuildVersionTag'
 import LanguageToggle from './components/LanguageToggle'
 import PwaUpdateToast from './components/PwaUpdateToast'
+import { ToastProvider } from './components/ui/Toast'
 import { GameRoomProvider } from './net/GameRoomProvider'
 import { useProfileStore } from './store/profile'
 
@@ -38,47 +39,63 @@ function GameRoomLayout() {
 
 export default function App() {
   return (
-    <div className="relative">
-      <BeerBubbles />
-      <div className="fixed top-3 right-3 z-50">
-        <LanguageToggle />
-      </div>
-      <PwaUpdateToast />
-      <BuildVersionTag />
-      <main className="relative z-10 min-h-dvh flex flex-col items-center px-4 py-6">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route
-            path="/dashboard"
-            element={
-              <RequireProfile>
-                <Dashboard />
-              </RequireProfile>
-            }
-          />
-          <Route
-            path="/create"
-            element={
-              <RequireProfile>
-                <CreateGame />
-              </RequireProfile>
-            }
-          />
+    // ToastProvider mounts a single global toast slot used via `useToast()`
+    // anywhere in the tree. The provider must wrap the routes so route
+    // components can show toasts as they unmount / navigate.
+    <ToastProvider>
+      <div className="relative">
+        <BeerBubbles />
+        {/* `<header>` landmark groups the persistent floating chrome
+            (language switch, future settings) so screen-reader users
+            can jump straight to it via the landmarks rotor. */}
+        <header className="fixed top-3 right-3 z-50">
+          <LanguageToggle />
+        </header>
+        <PwaUpdateToast />
+        <BuildVersionTag />
+        <main
+          className="relative z-10 min-h-dvh flex flex-col items-center px-4 py-6"
+          // iOS home-indicator inset (and notch on top via --safe-t).
+          // `--safe-b` is declared on :root in src/styles/index.css.
+          style={{
+            paddingBottom: 'max(1.5rem, calc(1.5rem + var(--safe-b)))',
+            paddingTop: 'max(1.5rem, calc(1.5rem + var(--safe-t)))',
+          }}
+        >
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route
+              path="/dashboard"
+              element={
+                <RequireProfile>
+                  <Dashboard />
+                </RequireProfile>
+              }
+            />
+            <Route
+              path="/create"
+              element={
+                <RequireProfile>
+                  <CreateGame />
+                </RequireProfile>
+              }
+            />
 
-          <Route
-            element={
-              <RequireProfile>
-                <GameRoomLayout />
-              </RequireProfile>
-            }
-          >
-            <Route path="/lobby/:code" element={<Lobby />} />
-            <Route path="/play/:code" element={<Play />} />
-            <Route path="/over/:code" element={<GameOver />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </div>
+            <Route
+              element={
+                <RequireProfile>
+                  <GameRoomLayout />
+                </RequireProfile>
+              }
+            >
+              <Route path="/lobby/:code" element={<Lobby />} />
+              <Route path="/play/:code" element={<Play />} />
+              <Route path="/over/:code" element={<GameOver />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </ToastProvider>
   )
 }

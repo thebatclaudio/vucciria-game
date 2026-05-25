@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useGameRoom, useGameMeta, usePlayers, usePeerCount } from '@/net/hooks'
@@ -15,6 +15,17 @@ import { orderedPlayers, resolveSeatCollision } from '@/game/rules'
 import { getOrCreatePlayerId, clearPlayerId } from '@/game/identity'
 import { useProfileStore } from '@/store/profile'
 import NotoEmoji from '@/components/NotoEmoji'
+import { LifeRow } from '@/components/LifeGlass'
+import {
+  PrimaryButton,
+  SecondaryButton,
+  DestructiveButton,
+  LinkButton,
+} from '@/components/ui/Button'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/useToast'
+import ShareSheet from '@/components/ShareSheet'
+import { recordRecentGame } from '@/net/recentGames'
 import type { Player } from '@/game/types'
 
 interface PendingSettings {
@@ -33,8 +44,13 @@ export default function Lobby() {
   const meta = useGameMeta(binding?.doc ?? null)
   const players = usePlayers(binding?.doc ?? null)
   const peerCount = usePeerCount(binding?.room ?? null)
-  const [copied, setCopied] = useState(false)
+  const toast = useToast()
   const [discoveryStalled, setDiscoveryStalled] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  // Confirmation gates around destructive actions. We carry the target
+  // peerId in state so the dialog body can name the player being kicked.
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [confirmKickId, setConfirmKickId] = useState<string | null>(null)
 
   // Stable per-tab player id (survives refresh, distinct per tab). See
   // src/game/identity.ts for the rationale — Trystero's wire-level selfId
@@ -203,6 +219,15 @@ export default function Lobby() {
     if (meta?.status === 'playing' && code) nav(`/play/${code}`)
   }, [meta?.status, code, nav])
 
+  // Record this game in the local "Recent games" index whenever we have
+  // a code + name. The index is read by the Dashboard to render rejoin
+  // affordances. Refreshing the row on every meta change is fine — the
+  // record helper deduplicates by code.
+  useEffect(() => {
+    if (!code || !meta?.name) return
+    recordRecentGame(code, meta.name)
+  }, [code, meta?.name])
+
   // Host migration: if the known host has left, lowest-seat player becomes host.
   //
   // CRITICAL: we must distinguish "no host known yet" (meta hasn't synced from
@@ -269,121 +294,226 @@ export default function Lobby() {
     })
   }
 
-  const copyCode = async () => {
-    if (!code) return
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      /* clipboard may be unavailable on some mobile contexts */
-    }
-  }
+  // Kicked-from-lobby toast. If our own player entry vanishes from the
+  // Yjs map while we're still in `/lobby/:code`, the host removed us.
+  // Show a toast, then redirect home. We watch a derived "still in
+  // players" boolean so the effect doesn't fire on legitimate exit paths
+  // like clicking Leave (which navigates first).
+  const stillSeated = !!playerId && players.some((p) => p.peerId === playerId)
+  const everSeatedRef = useRef(false)
+  useEffect(() => {
+    if (stillSeated) everSeatedRef.current = true
+  }, [stillSeated])
+  useEffect(() => {
+    if (!everSeatedRef.current) return
+    if (stillSeated) return
+    if (meta?.status && meta.status !== 'lobby') return
+    toast.show({ message: t('toast.kicked'), tone: 'danger', durationMs: 5000 })
+    nav('/dashboard')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stillSeated])
 
   if (!code) return null
 
   return (
-    <div className="w-full max-w-md flex flex-col gap-4 mt-8">
-      <h1 className="text-2xl font-bold text-beer-800 text-center">
-        {meta?.name ?? t('lobby.title')}
-      </h1>
-      {meta && (
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-sm text-beer-800 font-semibold">{t('create.startingLives')}</span>
-          <div className="flex justify-center gap-0.5 text-xl">
-            {Array.from({ length: meta.startingLives ?? 3 }).map((_, i) => (
-              <span key={i}>🥃</span>
-            ))}
+    <div className="w-full max-w-md flex flex-col gap-5 mt-8">
+      {/* Page title — keeps the game name front and centre. */}
+      <header className="flex flex-col items-center gap-1">
+        <h1 className="text-2xl font-bold text-ink text-center">
+          {meta?.name ?? t('lobby.title')}
+        </h1>
+        {meta && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-ink-soft font-semibold uppercase tracking-button">
+              {t('create.startingLives')}
+            </span>
+            <LifeRow
+              lives={meta.startingLives ?? 3}
+              max={meta.startingLives ?? 3}
+            />
           </div>
-        </div>
-      )}
+        )}
+      </header>
 
-      <div className="bg-white/90 rounded-2xl p-4 text-center shadow">
-        <p className="text-sm text-beer-700">{t('lobby.code')}</p>
-        <p className="text-5xl font-mono font-bold tracking-widest text-beer-800 my-2">
+      {/* --- Share card --------------------------------------------------
+          The lobby code is the single most-shared thing in the app, so it
+          gets the largest visual weight. The Share button opens a sheet
+          with QR + native share + copy in one place (see ShareSheet). */}
+      <section
+        aria-labelledby="lobby-share-heading"
+        className="bg-white rounded-card p-4 text-center shadow-elev-1 ring-1 ring-ink/5"
+      >
+        <p
+          id="lobby-share-heading"
+          className="text-xs text-ink-soft uppercase tracking-button"
+        >
+          {t('lobby.code')}
+        </p>
+        <p className="text-5xl font-mono font-bold tracking-widest text-ink my-2 select-all">
           {code}
         </p>
-          <button
-            onClick={copyCode}
-            className="px-4 py-1 bg-beer-500 hover:bg-beer-600 text-white text-sm rounded-full"
-          >
-            {copied ? `✓ ${t('lobby.copied')}` : `📋 ${t('lobby.copy')}`}
-          </button>
-      </div>
+        <SecondaryButton
+          onClick={() => setShareOpen(true)}
+          className="h-10 text-sm px-4"
+        >
+          📤 {t('lobby.share')}
+        </SecondaryButton>
+      </section>
 
-      {/* Connection status */}
-      <div className="flex items-center justify-center gap-2 text-xs">
+      {/* --- Status card -------------------------------------------------
+          One card per logical section so the screen has a clear rhythm
+          instead of seven stacked rows. Connection chip + (optional)
+          discovery-stalled banner live together so any P2P-related copy
+          stays in one place visually. */}
+      <section
+        aria-labelledby="lobby-status-heading"
+        className="bg-white rounded-card p-3 shadow-elev-1 ring-1 ring-ink/5 flex flex-col items-center gap-2"
+      >
+        <span id="lobby-status-heading" className="sr-only">
+          Connection status
+        </span>
         <span
-          className={`inline-block w-2 h-2 rounded-full ${
-            peerCount > 0 ? 'bg-green-500' : 'bg-amber-400 animate-pulse'
-          }`}
-        />
-        <span className="text-beer-600">
+          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-chip text-xs font-semibold
+            ${
+              peerCount > 0
+                ? 'bg-success-soft text-success ring-1 ring-success/30'
+                : 'bg-warn-soft text-warn ring-1 ring-warn/30'
+            }`}
+        >
+          <span
+            aria-hidden
+            className={`inline-block w-2 h-2 rounded-full ${
+              peerCount > 0 ? 'bg-success' : 'bg-warn animate-pulse'
+            }`}
+          />
           {peerCount > 0
             ? t('lobby.connected', { count: peerCount })
             : t('lobby.waitingForPeers')}
         </span>
-      </div>
 
-      {discoveryStalled && peerCount === 0 && (
-        <p
-          role="status"
-          className="text-xs text-amber-800 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2 text-center"
+        {discoveryStalled && peerCount === 0 && (
+          <p
+            role="status"
+            className="text-xs text-ink bg-warn-soft border border-warn rounded-surface px-3 py-2 text-center"
+          >
+            <span aria-hidden>⚠️ </span>
+            {t('lobby.discoveryStalled')}
+          </p>
+        )}
+      </section>
+
+      {/* --- Players card ----------------------------------------------- */}
+      <section
+        aria-labelledby="lobby-players-heading"
+        className="bg-white rounded-card p-3 shadow-elev-1 ring-1 ring-ink/5 flex flex-col gap-2"
+      >
+        <h2
+          id="lobby-players-heading"
+          className="text-xs text-ink-soft font-semibold uppercase tracking-button px-1"
         >
-          ⚠️ {t('lobby.discoveryStalled')}
+          {t('lobby.players', { count: ordered.length })}
+        </h2>
+        <ul className="flex flex-col gap-2">
+          {ordered.map((p) => (
+            <li
+              key={p.peerId}
+              className="flex items-center justify-between bg-canvas/30 rounded-surface px-3 py-2"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <NotoEmoji emoji={p.emoji} size={28} animated />
+                <span className="font-semibold truncate text-ink">
+                  {p.peerId === meta?.hostPeerId && (
+                    <span aria-hidden className="mr-1">👑</span>
+                  )}
+                  {p.nickname}
+                </span>
+                {p.peerId === playerId && (
+                  <span className="text-xs text-ink-soft">{t('lobby.you')}</span>
+                )}
+              </span>
+              {isHost && p.peerId !== playerId && (
+                <LinkButton
+                  onClick={() => setConfirmKickId(p.peerId)}
+                  className="!text-danger hover:!text-danger shrink-0 text-xs"
+                >
+                  {t('lobby.kick')}
+                </LinkButton>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* --- Bottom action area ---------------------------------------- */}
+      {isHost ? (
+        <PrimaryButton
+          onClick={start}
+          disabled={ordered.length < 2}
+          leadingIcon="▶"
+        >
+          {t('lobby.start')}
+        </PrimaryButton>
+      ) : (
+        <p className="text-center text-ink-soft italic">
+          {t('lobby.waitingForHost')}
         </p>
       )}
 
-      <h2 className="font-semibold text-beer-800">
-        {t('lobby.players', { count: ordered.length })}
-      </h2>
-      <ul className="flex flex-col gap-2">
-        {ordered.map((p) => (
-          <li
-            key={p.peerId}
-            className="flex items-center justify-between bg-white/80 rounded-lg px-3 py-2"
-          >
-            <span className="flex items-center gap-2 min-w-0">
-              <NotoEmoji emoji={p.emoji} size={28} animated />
-              <span className="font-semibold truncate">
-                {p.peerId === meta?.hostPeerId && <span className="mr-1">👑</span>}
-                {p.nickname}
-              </span>
-              {p.peerId === playerId && (
-                <span className="text-xs text-beer-600">{t('lobby.you')}</span>
-              )}
-            </span>
-            {isHost && p.peerId !== playerId && (
-              <button
-                onClick={() => kick(p.peerId)}
-                className="text-xs text-red-600 hover:underline shrink-0"
-              >
-                {t('lobby.kick')}
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      {isHost ? (
-        <button
-          onClick={start}
-          disabled={ordered.length < 2}
-          className="py-3 rounded-xl bg-beer-600 hover:bg-beer-700 disabled:bg-beer-300 text-white font-bold shadow-lg"
-        >
-          ▶ {t('lobby.start')}
-        </button>
-      ) : (
-        <p className="text-center text-beer-700 italic">{t('lobby.waitingForHost')}</p>
-      )}
-
       {ordered.length < 2 && isHost && (
-        <p className="text-center text-sm text-beer-700">{t('lobby.needMorePlayers')}</p>
+        <p className="text-center text-sm text-ink-soft">
+          {t('lobby.needMorePlayers')}
+        </p>
       )}
 
-      <button onClick={leave} className="text-sm text-red-700 underline mt-4">
+      <DestructiveButton
+        onClick={() => {
+          // Solo player can leave without confirmation — there's no game
+          // to disrupt and the action is reversible (rejoin same code).
+          if (ordered.length <= 1) {
+            leave()
+            return
+          }
+          setConfirmLeave(true)
+        }}
+        block
+        className="mt-2"
+      >
         {t('lobby.leave')}
-      </button>
+      </DestructiveButton>
+
+      <ShareSheet
+        open={shareOpen}
+        code={code}
+        gameName={meta?.name}
+        onClose={() => setShareOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmLeave}
+        title={t('confirm.leaveLobby.title')}
+        body={t('confirm.leaveLobby.body')}
+        confirmLabel={t('confirm.leaveLobby.confirm')}
+        onConfirm={() => {
+          setConfirmLeave(false)
+          leave()
+        }}
+        onCancel={() => setConfirmLeave(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmKickId !== null}
+        title={t('confirm.kickPlayer.title', {
+          name:
+            ordered.find((p) => p.peerId === confirmKickId)?.nickname ?? '?',
+        })}
+        body={t('confirm.kickPlayer.body')}
+        confirmLabel={t('confirm.kickPlayer.confirm')}
+        onConfirm={() => {
+          if (confirmKickId) kick(confirmKickId)
+          setConfirmKickId(null)
+        }}
+        onCancel={() => setConfirmKickId(null)}
+      />
     </div>
   )
 }

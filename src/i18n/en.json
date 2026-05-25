@@ -1,27 +1,35 @@
 {
   "app": {
-    "title": "VucciriaGame",
-    "tagline": "Drink. Draw. Survive."
+    "title": "VucciriaGame"
   },
   "home": {
     "nicknamePlaceholder": "Your nickname",
     "nicknameTooShort": "At least 2 characters",
     "pickEmoji": "Pick an avatar",
+    "avatarOption": "Avatar option",
+    "randomEmoji": "Random",
+    "randomNickname": "Random nickname",
     "play": "Play"
   },
   "dashboard": {
-    "welcome": "Welcome, {{name}}",
     "createGame": "Create game",
-    "joinGame": "Join game",
-    "changeProfile": "Change profile"
+    "changeProfile": "Change profile",
+    "recent": "Recent games",
+    "rejoin": "Rejoin",
+    "forget": "Forget"
+  },
+  "share": {
+    "title": "Share lobby",
+    "subtitle": "Anyone with this code or QR can join",
+    "systemShare": "Share",
+    "qrAlt": "QR code — scan to join the lobby",
+    "payload": "Join my Vucciria game: code {{code}}"
   },
   "create": {
     "title": "Create a game",
     "name": "Game name",
     "namePlaceholder": "Friday night",
     "startingLives": "Starting lives",
-    "location": "Location (optional)",
-    "locationPlaceholder": "My place",
     "submit": "Create",
     "back": "Back"
   },
@@ -29,15 +37,13 @@
     "title": "Join a game",
     "codePlaceholder": "ABC123",
     "submit": "Join",
-    "invalidCode": "Code must be 6 characters",
-    "back": "Back"
+    "invalidCode": "Code must be 6 characters"
   },
   "lobby": {
     "title": "Game lobby",
     "code": "Game code",
     "share": "Share",
     "copy": "Copy",
-    "copied": "Copied!",
     "players": "Players ({{count}})",
     "you": "(you)",
     "kick": "Kick",
@@ -50,32 +56,30 @@
     "discoveryStalled": "Still trying to reach other players… The P2P discovery service might be blocked on your network. Check your connection, try switching networks (e.g. mobile data), or ask the other player to refresh."
   },
   "play": {
-    "yourTurn": "Your turn",
-    "yourTurnDraw": "Your turn — draw a card",
-    "youAreShowing": "You're showing the card",
-    "turnOf": "{{name}}'s turn",
-    "waitingForDraw": "⏳ Waiting for {{name}} to draw",
-    "showingCard": "🎴 {{name}} is showing the card",
     "notYourTurn": "It's not your turn",
     "draw": "Draw a card",
     "endTurn": "End turn",
-    "confirmPick": "Confirm",
-    "eliminated": "Eliminated",
-    "livesLabel": "Shots left",
     "hostActions": "Host actions",
     "hostActionsHint": "Manual override — adjust shots or remove a player.",
     "addLife": "+1 shot",
     "removeLife": "-1 shot",
     "kick": "Remove player",
+    "phaseChip": {
+      "awaitingDraw": "Awaiting draw",
+      "drawerPicking": "Picking a target",
+      "duelPicking": "Picking opponent",
+      "hostPicking": "Host deciding",
+      "resolved": "Resolved"
+    },
+    "cardType": {
+      "auto": "Auto",
+      "manual": "Mossa",
+      "drawerChoice": "Your choice",
+      "duel": "Duel",
+      "hostChoice": "Host decides"
+    },
     "phase": {
-      "drawerPick": "Pick a player",
-      "duelPickOpponent": "Pick your opponent",
-      "hostPickLoser": "Pick the loser",
-      "hostPickLosers": "Tap everyone who lost (can be none)",
-      "hostPickDuelLoser": "Pick the duel loser",
-      "waitingDrawerPick": "⏳ {{name}} is picking a player",
-      "waitingDuelPick": "⏳ {{name}} is choosing an opponent",
-      "waitingHostPick": "⏳ Waiting for the host's decision"
+      "waitingHostPick": "Waiting for the host's decision"
     },
     "dialog": {
       "title": {
@@ -89,12 +93,14 @@
       "selectCount_one": "{{count}} selected",
       "selectCount_other": "{{count}} selected"
     },
-    "card": {
-      "cta": {
-        "pick": "👉 Tap the card or pick a player",
-        "endTurn": "👉 Tap the card to end your turn",
-        "activate": "Activate card"
-      }
+    "prompt": {
+      "draw": "Tap Draw a card below",
+      "pick": "Tap a player to continue",
+      "duelPick": "Choose your opponent",
+      "hostPick": "Tap the loser",
+      "hostPickAny": "Tap everyone who lost (or none)",
+      "endTurn": "Tap End turn when ready",
+      "waiting": "Hang tight — {{name}} is on it"
     },
     "summary": {
       "drinkOne": "🥃 {{name}} drank",
@@ -112,6 +118,8 @@
   "over": {
     "title": "Game over",
     "winner": "{{name}} wins!",
+    "scoreboard": "Scoreboard",
+    "rematch": "Rematch",
     "backToDashboard": "Back to dashboard"
   },
   "common": {
@@ -119,6 +127,38 @@
     "no": "No",
     "cancel": "Cancel",
     "confirm": "Confirm"
+  },
+  "confirm": {
+    "clearProfile": {
+      "title": "Change profile?",
+      "body": "Your current nickname and avatar will be cleared. You'll be sent back to the welcome screen.",
+      "confirm": "Change profile"
+    },
+    "leaveLobby": {
+      "title": "Leave this lobby?",
+      "body": "You'll lose your seat. The other players will keep going without you.",
+      "confirm": "Leave"
+    },
+    "kickPlayer": {
+      "title": "Remove {{name}}?",
+      "body": "They'll be dropped from the game immediately.",
+      "confirm": "Remove"
+    },
+    "zeroLives": {
+      "title": "Set {{name}} to 0 lives?",
+      "body": "This effectively eliminates them from the game.",
+      "confirm": "Eliminate"
+    },
+    "backToDashboard": {
+      "title": "Back to dashboard?",
+      "body": "This game will be cleared.",
+      "confirm": "Back to dashboard"
+    }
+  },
+  "toast": {
+    "codeCopied": "Code copied",
+    "codeCopyFailed": "Couldn't copy — long-press the code to select",
+    "kicked": "The host removed you from the game"
   },
   "pwa": {
     "updateAvailable": "A new version is available",

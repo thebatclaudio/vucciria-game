@@ -81,14 +81,17 @@ export default function PwaUpdateToast() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-4 inset-x-0 z-[100] flex justify-center px-4 pointer-events-none"
+      // Respect the iOS home-indicator inset. `--safe-b` is declared in
+      // src/styles/index.css and resolves to 0 on hardware without one.
+      style={{ bottom: 'calc(1rem + var(--safe-b))' }}
+      className="fixed inset-x-0 z-[100] flex justify-center px-4 pointer-events-none"
     >
-      <div className="pointer-events-auto flex items-center gap-3 rounded-full bg-amber-500 text-white shadow-lg px-4 py-2">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-full bg-accent text-white shadow-lg px-4 py-2">
         <span className="text-sm">{t('pwa.updateAvailable')}</span>
         <button
           type="button"
           onClick={() => void updateSWRef.current?.(true)}
-          className="rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 px-3 py-1 text-sm font-semibold transition-colors"
+          className="rounded-full bg-white/15 hover:bg-white/25 active:bg-white/35 px-3 py-1 text-sm font-semibold transition-colors"
         >
           {t('pwa.refresh')}
         </button>

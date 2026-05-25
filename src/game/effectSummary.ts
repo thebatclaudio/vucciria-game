@@ -98,29 +98,4 @@ export function buildEffectSummary(args: {
   }
 }
 
-/**
- * Convenience: derive the resolved-target ids for a `resolved`-phase card
- * by reading the Yjs meta scratch space + the card spec. Used by the UI
- * so it can call `buildEffectSummary` without re-implementing the logic.
- *
- * For auto cards, the targets are computed from the player list + drawer.
- * For choice/duel/host cards, they are stored in `pendingChosenIds` only
- * during the in-flight steps; once `applyCardEffect` resolves them it
- * clears that field. So callers must keep a local cache of the chosen
- * ids at the moment of resolution. The simplest path used in Play.tsx is
- * to read `pendingChosenIds` from a previous phase if non-empty, or fall
- * back to deriving from drawer/auto-target.
- *
- * If you have an authoritative list of chosen ids, prefer passing it
- * directly to `buildEffectSummary`.
- */
-export function deriveAutoSummaryTargets(
-  cardId: string,
-  drawerId: string | null,
-  players: Player[],
-): string[] {
-  if (!drawerId) return []
-  const card = getCard(cardId)
-  if (card.effect.resolution !== 'auto') return []
-  return resolveAutoTargets(players, drawerId, card.effect)
-}
+

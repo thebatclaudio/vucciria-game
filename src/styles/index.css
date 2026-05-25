@@ -5,6 +5,12 @@
 :root {
   color-scheme: light;
   font-family: 'Fredoka', system-ui, -apple-system, sans-serif;
+  /* Exposed as a Tailwind spacing token (`*-safe`) so layouts can write
+     `padding-bottom: max(1rem, var(--safe-b))` without each component
+     wiring its own env() call. iOS provides 34px on devices with a home
+     indicator; everything else returns 0. */
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
 }
 
 html,
@@ -15,9 +21,13 @@ body,
 }
 
 body {
-  background: linear-gradient(180deg, #fffbeb 0%, #fde68a 100%);
+  /* "Drunken Noir" canvas: warm yellow (matches the old vucciria-game-pwa
+     particles.js page) with a subtle vertical deepening toward the bottom. */
+  background: linear-gradient(180deg, #fbc02d 0%, #f9a825 100%);
   background-attachment: fixed;
-  color: #422006;
+  /* Warm espresso instead of pure black — matches the "Brown Stout" palette
+     in tailwind.config.ts. Maintains ~10.6:1 contrast against the canvas. */
+  color: #3e2723;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -31,4 +41,26 @@ body {
 /* Card flip helper */
 .perspective {
   perspective: 1000px;
+}
+
+/* Confetti micro-motion used on the GameOver screen. Defined here rather
+   than in tailwind.config.ts because each piece needs an inline custom
+   property (`--confetti-rotate-end`) to spin to a different terminal
+   angle, and Tailwind keyframes can't read CSS variables at parse time. */
+@keyframes confetti-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 110vh) rotate(var(--confetti-rotate-end, 720deg));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bubble-rise,
+  .animate-pulse {
+    animation: none !important;
+  }
 }

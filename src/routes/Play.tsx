@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from '@/components/Card'
 import NotoEmoji from '@/components/NotoEmoji'
 import PlayerPickerDialog, { type PickerMode } from '@/components/PlayerPickerDialog'
-import { useGameRoom, useGameMeta, usePlayers } from '@/net/hooks'
+import StatusHeader, { type PhaseChipTone } from '@/components/StatusHeader'
+import { LifeRow } from '@/components/LifeGlass'
+import { PrimaryButton } from '@/components/ui/Button'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/useToast'
+import { useGameRoom, useGameMeta, usePlayers, usePeerCount } from '@/net/hooks'
 import { getMeta, getDeck, getPlayers } from '@/net/ydoc'
 import { drawNext } from '@/game/deck'
 import { orderedPlayers, alivePlayers, nextTurnSeat, checkWinner } from '@/game/rules'
@@ -20,6 +25,13 @@ export default function Play() {
   const binding = useGameRoom(code)
   const meta = useGameMeta(binding?.doc ?? null)
   const players = usePlayers(binding?.doc ?? null)
+  const peerCount = usePeerCount(binding?.room ?? null)
+  const toast = useToast()
+
+  // Confirmation gates: kick (peerId) and "set lives to 0" (peerId).
+  // Carrying the target id in state lets the dialog body name the player.
+  const [confirmKickId, setConfirmKickId] = useState<string | null>(null)
+  const [confirmZeroId, setConfirmZeroId] = useState<string | null>(null)
 
   // Stable per-tab player id (must match the one used in Lobby).
   const playerId = useMemo(() => (code ? getOrCreatePlayerId(code) : null), [code])
@@ -38,6 +50,24 @@ export default function Play() {
   const ordered = orderedPlayers(players)
   const me = ordered.find((p) => p.peerId === playerId) ?? null
   const isHost = meta?.hostPeerId === playerId
+
+  // Kicked-mid-game toast. If our own entry disappears from the players
+  // map while the game is still `playing`, the host removed us. Show a
+  // toast and route back to the dashboard. `everSeatedRef` prevents the
+  // effect from firing on the first paint while the doc is still
+  // syncing (we haven't seen ourselves yet then).
+  const everSeatedRef = useRef(false)
+  useEffect(() => {
+    if (me) everSeatedRef.current = true
+  }, [me])
+  useEffect(() => {
+    if (!everSeatedRef.current) return
+    if (me) return
+    if (meta?.status !== 'playing') return
+    toast.show({ message: t('toast.kicked'), tone: 'danger', durationMs: 5000 })
+    nav('/dashboard')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, meta?.status])
   // Seat-only: true even if the player at this seat has 0 lives. Used to
   // allow a player who just died on their own card to end their own turn
   // (otherwise the game would deadlock on `resolved`).
@@ -341,119 +371,155 @@ export default function Play() {
     }
   }
 
-  // --- Status message (waiting / your turn / resolved summary) ----------
+  // --- Phase chip + prompt (consumed by <StatusHeader>) ------------------
+  //
+  // Each (phase × viewer-role) maps to two things:
+  //   1. `phaseTone` / `phaseLabel`: a semantic chip that says *what stage
+  //      of the turn we're in* (Awaiting draw / Drawer picking / Host
+  //      deciding / Resolved). Color carries the urgency:
+  //        - `self`     → accent (action expected from me)
+  //        - `waiting`  → amber pulse (action expected from someone else)
+  //        - `resolved` → green (turn closed, drawer can end)
+  //        - `idle`     → grey (nothing happening here)
+  //   2. `prompt`: a single-sentence nudge for the *local viewer*. Empty
+  //      for observers so the header stays compact.
+  //
+  // The "resolved" prompt deliberately reuses `buildEffectSummary` so the
+  // human-readable outcome (who drank, jolly transfers, etc.) still
+  // appears — just inside the header instead of as a free-floating <p>.
 
-  const getStatusMessage = (): string => {
-    const name = currentPlayer?.nickname ?? '?'
+  type Banner = {
+    phaseLabel: string
+    phaseTone: PhaseChipTone
+    prompt: string | null
+  }
+
+  const banner: Banner = (() => {
+    const drawerName = currentPlayer?.nickname ?? '?'
     if (phase === 'awaiting-draw') {
       return isMyTurn
-        ? `🎯 ${t('play.yourTurnDraw')}`
-        : t('play.waitingForDraw', { name })
+        ? {
+            phaseLabel: t('play.phaseChip.awaitingDraw'),
+            phaseTone: 'self',
+            prompt: t('play.prompt.draw'),
+          }
+        : {
+            phaseLabel: t('play.phaseChip.awaitingDraw'),
+            phaseTone: 'waiting',
+            prompt: t('play.prompt.waiting', { name: drawerName }),
+          }
     }
     if (phase === 'awaiting-drawer-pick') {
+      const isDuel = currentCard?.effect.resolution === 'duel'
+      const chipLabel = isDuel
+        ? t('play.phaseChip.duelPicking')
+        : t('play.phaseChip.drawerPicking')
       if (isMyTurn) {
-        // Dialog handles the picker; status banner stays informational.
-        return currentCard?.effect.resolution === 'duel'
-          ? `⚔️ ${t('play.phase.duelPickOpponent')}`
-          : `👉 ${t('play.phase.drawerPick')}`
+        return {
+          phaseLabel: chipLabel,
+          phaseTone: 'self',
+          prompt: isDuel
+            ? t('play.prompt.duelPick')
+            : t('play.prompt.pick'),
+        }
       }
-      return currentCard?.effect.resolution === 'duel'
-        ? t('play.phase.waitingDuelPick', { name })
-        : t('play.phase.waitingDrawerPick', { name })
+      return {
+        phaseLabel: chipLabel,
+        phaseTone: 'waiting',
+        prompt: t('play.prompt.waiting', { name: drawerName }),
+      }
     }
     if (phase === 'awaiting-host-pick') {
       const tc = currentCard?.effect.targetCount
       if (isHost) {
-        if (currentCard?.effect.resolution === 'duel') {
-          return `👑 ${t('play.phase.hostPickDuelLoser')}`
+        return {
+          phaseLabel: t('play.phaseChip.hostPicking'),
+          phaseTone: 'self',
+          prompt: tc === 'any'
+            ? t('play.prompt.hostPickAny')
+            : t('play.prompt.hostPick'),
         }
-        return tc === 1
-          ? `👑 ${t('play.phase.hostPickLoser')}`
-          : `👑 ${t('play.phase.hostPickLosers')}`
       }
-      return t('play.phase.waitingHostPick')
+      return {
+        phaseLabel: t('play.phaseChip.hostPicking'),
+        phaseTone: 'waiting',
+        prompt: null,
+      }
     }
-    // resolved — show the effect summary instead of the old generic banner.
-    if (!currentCard) return ''
+    // resolved
+    if (!currentCard) {
+      return {
+        phaseLabel: t('play.phaseChip.resolved'),
+        phaseTone: 'resolved',
+        prompt: null,
+      }
+    }
     const drawer = ordered.find((p) => p.seat === meta?.turnSeat) ?? null
-    return buildEffectSummary({
+    const summary = buildEffectSummary({
       cardId: currentCard.id,
       drawerId: drawer?.peerId ?? null,
       players: ordered,
       chosenIds: lastResolvedTargets,
       t,
     })
-  }
-
-  // --- Card click behavior ----------------------------------------------
-  //
-  // The card itself doubles as a CTA:
-  //   - resolved + my turn (seat)  → click ends the turn (matches the
-  //     dedicated button, but lets the dying drawer close their turn too).
-  //   - awaiting-drawer-pick + my turn → no-op (the dialog auto-opens and
-  //     is mandatory; we keep the prop set so the affordance is visible).
-  //   - awaiting-host-pick + I'm host → same: dialog auto-opens.
-  // Other phases / non-actors → not clickable.
-
-  let cardOnClick: (() => void) | null = null
-  let cardCta: string | null = null
-  if (phase === 'resolved' && isMyTurnSeat) {
-    cardOnClick = endTurn
-    cardCta = t('play.card.cta.endTurn')
-  } else if (phase === 'awaiting-drawer-pick' && isMyTurn) {
-    // Dialog is already open; clicking the card is a harmless no-op but
-    // we keep the CTA hint so the user sees the next step.
-    cardOnClick = () => {
-      /* dialog already handles the action */
+    return {
+      phaseLabel: t('play.phaseChip.resolved'),
+      phaseTone: 'resolved',
+      prompt: summary || (isMyTurnSeat ? t('play.prompt.endTurn') : null),
     }
-    cardCta = t('play.card.cta.pick')
-  } else if (phase === 'awaiting-host-pick' && isHost) {
-    cardOnClick = () => {
-      /* dialog already handles the action */
-    }
-    cardCta = t('play.card.cta.pick')
-  }
+  })()
+
+  const drawer = ordered.find((p) => p.seat === meta.turnSeat) ?? null
+  const drawerIsHost = drawer?.peerId === meta.hostPeerId
+  const isDrawerLocal = drawer?.peerId === playerId
 
   return (
-    <div className="w-full max-w-md flex flex-col items-center gap-4 mt-4">
-      <div className="text-center">
-        <p className="text-beer-800 font-semibold text-lg">{getStatusMessage()}</p>
+    <div
+      className="w-full max-w-md flex flex-col items-center gap-4 mt-4"
+      // Reserve room at the bottom for the sticky action bar so the player
+      // list never lives under it. Matches the bar's `h-20 + safe inset`.
+      style={{
+        paddingBottom: 'calc(5rem + var(--safe-b))',
+      }}
+    >
+      {/* Connection chip — surfaces P2P health while playing, not just in
+          the lobby. A dropped connection mid-game manifests as silent stale
+          state otherwise. */}
+      <div className="flex items-center justify-center">
+        <span
+          className={`inline-flex items-center gap-2 px-3 py-1 rounded-chip text-xs font-semibold
+            ${
+              peerCount > 0
+                ? 'bg-success-soft text-success ring-1 ring-success/30'
+                : 'bg-warn-soft text-warn ring-1 ring-warn/30'
+            }`}
+        >
+          <span
+            aria-hidden
+            className={`inline-block w-2 h-2 rounded-full ${
+              peerCount > 0 ? 'bg-success' : 'bg-warn animate-pulse'
+            }`}
+          />
+          {peerCount > 0
+            ? t('lobby.connected', { count: peerCount })
+            : t('lobby.waitingForPeers')}
+        </span>
       </div>
 
-      <Card
-        cardId={meta.lastCardId ?? null}
-        onClick={cardOnClick}
-        ctaLabel={cardCta}
+      {/* 3-row status header: avatar + lives → phase chip → prompt */}
+      <StatusHeader
+        drawer={drawer}
+        isDrawer={isDrawerLocal}
+        isHost={drawerIsHost}
+        startingLives={meta.startingLives ?? drawer?.lives ?? 0}
+        hasJolly={!!drawer && drawer.peerId === meta.jollyHolderId}
+        phaseLabel={banner.phaseLabel}
+        phaseTone={banner.phaseTone}
+        prompt={banner.prompt}
       />
 
-      <div className="flex gap-3 min-h-[52px] flex-wrap justify-center">
-        {phase === 'awaiting-draw' && isMyTurn && (
-          <button
-            onClick={draw}
-            className="px-6 py-3 rounded-xl bg-beer-600 hover:bg-beer-700 text-white font-bold shadow-lg"
-          >
-            🎴 {t('play.draw')}
-          </button>
-        )}
-
-        {phase === 'resolved' && isMyTurnSeat && (
-          <button
-            onClick={endTurn}
-            className="px-6 py-3 rounded-xl bg-beer-700 hover:bg-beer-800 text-white font-bold shadow-lg"
-          >
-            ⏭ {t('play.endTurn')}
-          </button>
-        )}
-
-        {!isMyTurn &&
-          phase !== 'awaiting-host-pick' &&
-          phase !== 'awaiting-drawer-pick' &&
-          phase !== 'resolved' && (
-            <div className="px-4 py-2 rounded-lg bg-beer-100 text-beer-700 text-sm flex items-center">
-              {t('play.notYourTurn')}
-            </div>
-          )}
-      </div>
+      {/* Card is now pure content; no longer a CTA. */}
+      <Card cardId={meta.lastCardId ?? null} />
 
       {/* Player list (bottom of play area) — now read-only status rows.
           All target selection happens inside the modal dialog. */}
@@ -467,76 +533,102 @@ export default function Play() {
           return (
             <li
               key={p.peerId}
-              className={`flex items-center justify-between bg-white/80 rounded-lg px-3 py-2 transition
-                ${isCurrent ? 'ring-2 ring-beer-600 bg-beer-50' : ''}
+              className={`flex items-center justify-between bg-white rounded-surface px-3 py-2 ring-1 ring-ink/10 shadow-elev-1 transition
+                ${isCurrent ? 'ring-2 ring-accent' : ''}
                 ${isDead ? 'opacity-50' : ''}`}
             >
               <span className="flex items-center gap-2 min-w-0">
                 <NotoEmoji emoji={p.emoji} size={28} animated={isCurrent} />
-                <span className="font-semibold truncate">
-                  {isHostPlayer && <span className="mr-1">👑</span>}
+                <span className="font-semibold truncate text-ink">
+                  {isHostPlayer && (
+                    <span aria-hidden className="mr-1">👑</span>
+                  )}
                   {p.nickname}
                 </span>
                 {isSelf && (
-                  <span className="text-xs text-beer-600 shrink-0">
+                  <span className="text-xs text-ink-soft shrink-0">
                     ({t('lobby.you')})
                   </span>
                 )}
                 {isCurrent && phase !== 'awaiting-draw' && (
-                  <span className="text-sm shrink-0" title="Showing card">
+                  <span
+                    aria-label="Showing card"
+                    className="text-sm shrink-0"
+                  >
                     🎴
                   </span>
                 )}
               </span>
-              <span className="flex gap-0.5 text-base shrink-0 ml-2 items-center">
-                {Array.from({ length: p.lives }).map((_, i) => (
-                  <span key={i}>🥃</span>
-                ))}
-                {p.peerId === meta?.jollyHolderId && (
-                  <span className="ml-1" title="Jolly token">
-                    🃏
-                  </span>
-                )}
-              </span>
+              <LifeRow
+                lives={p.lives}
+                max={meta.startingLives ?? p.lives}
+                hasJolly={p.peerId === meta?.jollyHolderId}
+              />
             </li>
           )
         })}
       </ul>
 
       {isHost && (
-        <details className="w-full bg-white/80 rounded-xl p-3 mt-4">
-          <summary className="font-semibold text-beer-800 cursor-pointer">
-            👑 {t('play.hostActions')}
-          </summary>
-          <p className="text-xs text-beer-700 mt-1 mb-2 italic">
+        // Phase 2.3 — host panel promoted from a collapsed `<details>` to
+        // an always-visible card. The dashed accent border + 👑 badge
+        // signal "elevated controls" without competing with the play CTA.
+        <section
+          aria-labelledby="host-panel-heading"
+          className="w-full bg-white rounded-card p-3 mt-2 ring-1 ring-accent/30 border-2 border-dashed border-accent/40 shadow-elev-1"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <h2
+              id="host-panel-heading"
+              className="font-semibold text-ink text-sm flex items-center gap-1"
+            >
+              <span aria-hidden>👑</span> {t('play.hostActions')}
+            </h2>
+            <span className="text-[10px] uppercase tracking-button text-accent font-bold bg-canvas px-2 py-0.5 rounded-chip ring-1 ring-accent/30">
+              Host
+            </span>
+          </div>
+          <p className="text-xs text-ink-soft mb-2 italic">
             {t('play.hostActionsHint')}
           </p>
-          <ul className="mt-2 flex flex-col gap-2">
+          <ul className="flex flex-col gap-2">
             {ordered.map((p) => (
               <li
                 key={p.peerId}
-                className="flex items-center justify-between text-sm"
+                className="flex items-center justify-between gap-2 text-sm"
               >
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 min-w-0">
                   <NotoEmoji emoji={p.emoji} size={20} />
-                  <span>{p.nickname}</span>
+                  <span className="truncate text-ink">{p.nickname}</span>
                 </span>
-                <span className="flex gap-1">
+                <span className="flex gap-1 shrink-0">
                   <button
                     onClick={() => adjustLife(p.peerId, +1)}
-                    className="px-2 py-1 bg-green-200 hover:bg-green-300 rounded"
+                    aria-label={`${t('play.addLife')} (${p.nickname})`}
+                    className="min-w-11 min-h-9 px-2 py-1 bg-success-soft text-success border border-success/40 hover:bg-success hover:text-white rounded font-semibold transition"
                   >
                     {t('play.addLife')}
                   </button>
                   <button
-                    onClick={() => adjustLife(p.peerId, -1)}
-                    className="px-2 py-1 bg-red-200 hover:bg-red-300 rounded"
+                    onClick={() => {
+                      // "to zero" is destructive — surface a confirm step.
+                      // For other decrements (≥2 → ≥1 etc.) the host can
+                      // apply directly without nagging.
+                      if (p.lives <= 1) {
+                        setConfirmZeroId(p.peerId)
+                      } else {
+                        adjustLife(p.peerId, -1)
+                      }
+                    }}
+                    aria-label={`${t('play.removeLife')} (${p.nickname})`}
+                    className="min-w-11 min-h-9 px-2 py-1 bg-danger-soft text-danger border border-danger/40 hover:bg-danger hover:text-white rounded font-semibold transition"
                   >
                     {t('play.removeLife')}
                   </button>
                   <button
-                    onClick={() => kick(p.peerId)}
-                    className="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
+                    onClick={() => setConfirmKickId(p.peerId)}
+                    aria-label={`${t('play.kick')} (${p.nickname})`}
+                    className="min-w-11 min-h-9 px-2 py-1 bg-white text-ink border border-ink/30 hover:bg-ink hover:text-white rounded font-semibold transition"
                   >
                     {t('play.kick')}
                   </button>
@@ -544,7 +636,7 @@ export default function Play() {
               </li>
             ))}
           </ul>
-        </details>
+        </section>
       )}
 
       {/* Mandatory player-selection dialog. Mounted only when a pick is
@@ -565,6 +657,93 @@ export default function Play() {
           highlightPeerId={currentPlayer?.peerId ?? null}
         />
       )}
+
+      {/* Sticky bottom action bar.
+          --------------------------
+          The primary CTA (Draw / End turn) used to live in the middle of
+          the column, which meant 4+ players pushed it off-screen and the
+          drawer had to scroll back up to act. Pinning it to the viewport
+          floor matches the iOS/Android tab-bar convention and lets the
+          page content above scroll independently.
+
+          Layered: `bottom-0 inset-x-0` covers the viewport bottom edge;
+          the inner pill is centered with the same `max-w-md` as the
+          column. Backdrop blur keeps the player list visible underneath
+          while the bar reads as a separate plane.
+
+          Safe-area: padded for the iOS home indicator via `--safe-b`. */}
+      <div
+        className="fixed bottom-0 inset-x-0 z-30 px-4 pt-3 bg-canvas/60 backdrop-blur-sm pointer-events-none"
+        style={{
+          paddingBottom: 'calc(0.75rem + var(--safe-b))',
+        }}
+      >
+        <div className="max-w-md mx-auto flex justify-center pointer-events-auto">
+          {phase === 'awaiting-draw' && isMyTurn && (
+            <PrimaryButton onClick={draw} leadingIcon="🎴" block={false}>
+              {t('play.draw')}
+            </PrimaryButton>
+          )}
+
+          {phase === 'resolved' && isMyTurnSeat && (
+            <PrimaryButton onClick={endTurn} leadingIcon="⏭" block={false}>
+              {t('play.endTurn')}
+            </PrimaryButton>
+          )}
+
+          {/* Non-actor placeholder: keeps the bar height stable so the
+              page padding-bottom reservation doesn't have to flex. */}
+          {!isMyTurn &&
+            phase !== 'awaiting-host-pick' &&
+            phase !== 'awaiting-drawer-pick' &&
+            phase !== 'resolved' && (
+              <div className="h-12 px-4 rounded-chip bg-white/70 text-ink-soft text-xs uppercase tracking-button flex items-center ring-1 ring-ink/10">
+                {t('play.notYourTurn')}
+              </div>
+            )}
+
+          {/* Pick phases — the dialog handles the action; render a calm
+              waiting indicator so the bar still occupies its slot. */}
+          {(phase === 'awaiting-host-pick' ||
+            phase === 'awaiting-drawer-pick') &&
+            !(isMyTurn || isHost) && (
+              <div className="h-12 px-4 rounded-chip bg-white/70 text-ink-soft text-xs uppercase tracking-button flex items-center ring-1 ring-ink/10">
+                {t('play.phase.waitingHostPick')}
+              </div>
+            )}
+        </div>
+      </div>
+
+      {/* Host-only destructive confirmations. The dialogs name the target
+          player so the host doesn't misclick on a busy player list. */}
+      <ConfirmDialog
+        open={confirmKickId !== null}
+        title={t('confirm.kickPlayer.title', {
+          name:
+            ordered.find((p) => p.peerId === confirmKickId)?.nickname ?? '?',
+        })}
+        body={t('confirm.kickPlayer.body')}
+        confirmLabel={t('confirm.kickPlayer.confirm')}
+        onConfirm={() => {
+          if (confirmKickId) kick(confirmKickId)
+          setConfirmKickId(null)
+        }}
+        onCancel={() => setConfirmKickId(null)}
+      />
+      <ConfirmDialog
+        open={confirmZeroId !== null}
+        title={t('confirm.zeroLives.title', {
+          name:
+            ordered.find((p) => p.peerId === confirmZeroId)?.nickname ?? '?',
+        })}
+        body={t('confirm.zeroLives.body')}
+        confirmLabel={t('confirm.zeroLives.confirm')}
+        onConfirm={() => {
+          if (confirmZeroId) adjustLife(confirmZeroId, -1)
+          setConfirmZeroId(null)
+        }}
+        onCancel={() => setConfirmZeroId(null)}
+      />
     </div>
   )
 }

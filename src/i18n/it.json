@@ -1,27 +1,35 @@
 {
   "app": {
-    "title": "VucciriaGame",
-    "tagline": "Bevi. Pesca. Sopravvivi."
+    "title": "VucciriaGame"
   },
   "home": {
     "nicknamePlaceholder": "Il tuo nickname",
     "nicknameTooShort": "Almeno 2 caratteri",
     "pickEmoji": "Scegli un avatar",
+    "avatarOption": "Avatar",
+    "randomEmoji": "Casuale",
+    "randomNickname": "Nickname casuale",
     "play": "Gioca"
   },
   "dashboard": {
-    "welcome": "Benvenuto, {{name}}",
     "createGame": "Crea partita",
-    "joinGame": "Unisciti",
-    "changeProfile": "Cambia profilo"
+    "changeProfile": "Cambia profilo",
+    "recent": "Partite recenti",
+    "rejoin": "Riconnetti",
+    "forget": "Dimentica"
+  },
+  "share": {
+    "title": "Condividi la sala",
+    "subtitle": "Chi ha questo codice o QR può entrare",
+    "systemShare": "Condividi",
+    "qrAlt": "Codice QR — scansiona per entrare nella sala",
+    "payload": "Entra nella mia partita di Vucciria: codice {{code}}"
   },
   "create": {
     "title": "Crea una partita",
     "name": "Nome partita",
     "namePlaceholder": "Venerdì sera",
     "startingLives": "Bicchierini iniziali",
-    "location": "Luogo (opzionale)",
-    "locationPlaceholder": "Casa mia",
     "submit": "Crea",
     "back": "Indietro"
   },
@@ -29,15 +37,13 @@
     "title": "Unisciti a una partita",
     "codePlaceholder": "ABC123",
     "submit": "Entra",
-    "invalidCode": "Il codice deve essere di 6 caratteri",
-    "back": "Indietro"
+    "invalidCode": "Il codice deve essere di 6 caratteri"
   },
   "lobby": {
     "title": "Sala d'attesa",
     "code": "Codice partita",
     "share": "Condividi",
     "copy": "Copia",
-    "copied": "Copiato!",
     "players": "Giocatori ({{count}})",
     "you": "(tu)",
     "kick": "Caccia",
@@ -50,32 +56,30 @@
     "discoveryStalled": "Sto ancora cercando gli altri giocatori… Il servizio di scoperta P2P potrebbe essere bloccato sulla tua rete. Controlla la connessione, prova a cambiare rete (es. dati mobili) o chiedi all'altro giocatore di ricaricare."
   },
   "play": {
-    "yourTurn": "Tocca a te",
-    "yourTurnDraw": "Tocca a te — pesca una carta",
-    "youAreShowing": "Stai mostrando la carta",
-    "turnOf": "Tocca a {{name}}",
-    "waitingForDraw": "⏳ Aspettando che {{name}} peschi",
-    "showingCard": "🎴 {{name}} sta mostrando la carta",
     "notYourTurn": "Non è il tuo turno",
     "draw": "Pesca una carta",
     "endTurn": "Fine turno",
-    "confirmPick": "Conferma",
-    "eliminated": "Eliminato",
-    "livesLabel": "Bicchierini rimasti",
     "hostActions": "Azioni host",
     "hostActionsHint": "Modifica manuale — regola i bicchierini o rimuovi un giocatore.",
     "addLife": "+1 bicchierino",
     "removeLife": "-1 bicchierino",
     "kick": "Rimuovi giocatore",
+    "phaseChip": {
+      "awaitingDraw": "Da pescare",
+      "drawerPicking": "Scelta in corso",
+      "duelPicking": "Scelta avversario",
+      "hostPicking": "Decide l'host",
+      "resolved": "Risolta"
+    },
+    "cardType": {
+      "auto": "Auto",
+      "manual": "Mossa",
+      "drawerChoice": "Scegli tu",
+      "duel": "Sfida",
+      "hostChoice": "Decide l'host"
+    },
     "phase": {
-      "drawerPick": "Scegli un giocatore",
-      "duelPickOpponent": "Scegli il tuo avversario",
-      "hostPickLoser": "Scegli chi ha perso",
-      "hostPickLosers": "Tocca tutti quelli che hanno perso (anche nessuno)",
-      "hostPickDuelLoser": "Scegli chi ha perso la sfida",
-      "waitingDrawerPick": "⏳ {{name}} sta scegliendo un giocatore",
-      "waitingDuelPick": "⏳ {{name}} sta scegliendo l'avversario",
-      "waitingHostPick": "⏳ In attesa della decisione dell'host"
+      "waitingHostPick": "In attesa della decisione dell'host"
     },
     "dialog": {
       "title": {
@@ -89,12 +93,14 @@
       "selectCount_one": "{{count}} selezionato",
       "selectCount_other": "{{count}} selezionati"
     },
-    "card": {
-      "cta": {
-        "pick": "👉 Tocca la carta o scegli un giocatore",
-        "endTurn": "👉 Tocca la carta per chiudere il turno",
-        "activate": "Attiva carta"
-      }
+    "prompt": {
+      "draw": "Tocca Pesca una carta qui sotto",
+      "pick": "Tocca un giocatore per continuare",
+      "duelPick": "Scegli il tuo avversario",
+      "hostPick": "Tocca chi ha perso",
+      "hostPickAny": "Tocca tutti quelli che hanno perso (o nessuno)",
+      "endTurn": "Tocca Fine turno quando sei pronto",
+      "waiting": "Aspetta — {{name}} ci sta pensando"
     },
     "summary": {
       "drinkOne": "🥃 {{name}} ha bevuto",
@@ -112,6 +118,8 @@
   "over": {
     "title": "Partita finita",
     "winner": "{{name}} ha vinto!",
+    "scoreboard": "Classifica",
+    "rematch": "Rivincita",
     "backToDashboard": "Torna al menu"
   },
   "common": {
@@ -119,6 +127,38 @@
     "no": "No",
     "cancel": "Annulla",
     "confirm": "Conferma"
+  },
+  "confirm": {
+    "clearProfile": {
+      "title": "Cambiare profilo?",
+      "body": "Il tuo nickname e avatar verranno cancellati. Tornerai alla schermata di benvenuto.",
+      "confirm": "Cambia profilo"
+    },
+    "leaveLobby": {
+      "title": "Uscire dalla sala?",
+      "body": "Perderai il tuo posto. Gli altri giocatori continueranno senza di te.",
+      "confirm": "Esci"
+    },
+    "kickPlayer": {
+      "title": "Rimuovere {{name}}?",
+      "body": "Verrà espulso dalla partita immediatamente.",
+      "confirm": "Rimuovi"
+    },
+    "zeroLives": {
+      "title": "Portare {{name}} a 0 bicchierini?",
+      "body": "Lo eliminerai di fatto dalla partita.",
+      "confirm": "Elimina"
+    },
+    "backToDashboard": {
+      "title": "Tornare al menu?",
+      "body": "Questa partita verrà cancellata.",
+      "confirm": "Torna al menu"
+    }
+  },
+  "toast": {
+    "codeCopied": "Codice copiato",
+    "codeCopyFailed": "Impossibile copiare — tieni premuto il codice per selezionarlo",
+    "kicked": "L'host ti ha rimosso dalla partita"
   },
   "pwa": {
     "updateAvailable": "È disponibile una nuova versione",

@@ -10,7 +10,11 @@ export default function BuildVersionTag() {
   return (
     <div
       aria-hidden
-      className="fixed bottom-1 right-2 z-40 text-[10px] font-mono text-amber-900/40 select-none pointer-events-none"
+      // Pushed above the iOS home-indicator via `--safe-b` (declared in
+      // index.css). On hardware without an inset the variable evaluates to
+      // 0px, so the tag sits flush at `bottom-1` like before.
+      style={{ bottom: 'calc(0.25rem + var(--safe-b))' }}
+      className="fixed right-2 z-40 text-[10px] font-mono text-ink/40 select-none pointer-events-none"
     >
       v{__APP_VERSION__}
     </div>
