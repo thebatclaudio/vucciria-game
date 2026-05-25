@@ -6,6 +6,12 @@ import {
   unicodeToCodepoint,
 } from '@/assets/notoEmojiMap'
 
+// Vite's configured `base` (e.g. "/vucciria-game/" on GH Pages, "/" locally).
+// Trailing slash stripped because the resolver helpers prepend "/noto/...".
+// Without this, locally-bundled emoji codepoints in `notoManifest` resolve to
+// `/noto/svg/<cp>.svg` and 404 under the GH Pages base path.
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, '')
+
 /**
  * `<DotLottieReact>` is ~80 KB of JS + WASM. We only need it when an avatar
  * is actually being animated (current-turn player, hero spots). Lazy-import
@@ -109,12 +115,12 @@ export default function NotoEmoji({
   }
 
   if (wantAnimated) {
-    const lottieUrl = resolveLottieUrl(emoji)
+    const lottieUrl = resolveLottieUrl(emoji, BASE_URL)
     return (
       <Suspense
         fallback={
           <img
-            src={resolveSvgUrl(emoji)}
+            src={resolveSvgUrl(emoji, BASE_URL)}
             width={size}
             height={size}
             alt={label}
@@ -144,7 +150,7 @@ export default function NotoEmoji({
 
   return (
     <img
-      src={resolveSvgUrl(emoji)}
+      src={resolveSvgUrl(emoji, BASE_URL)}
       width={size}
       height={size}
       alt={label}
